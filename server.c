@@ -6,40 +6,47 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
- 
+
+#define TAM_BUFFER 500
 #define PORTNUM 2300
- 
-int main(int argc, char *argv[])
-{
-    char* msg = "Hello World !\n";
-  
-    struct sockaddr_in dest; /* socket info about the machine connecting to us */
-    struct sockaddr_in serv; /* socket info about our server */
-    int mysocket;            /* socket used to listen for incoming connections */
-    socklen_t socksize = sizeof(struct sockaddr_in);
 
-    memset(&serv, 0, sizeof(serv));           /* zero the struct before filling the fields */
-    serv.sin_family = AF_INET;                /* set the type of connection to TCP/IP */
-    serv.sin_addr.s_addr = htonl(INADDR_ANY); /* set our address to any interface */
-    serv.sin_port = htons(PORTNUM);           /* set the server port number */    
+int main (void) {
+  int s, client_s;
+  struct sockaddr_in self, client;
 
-    mysocket = socket(AF_INET, SOCK_STREAM, 0);
-  
-    /* bind serv information to mysocket */
-    bind(mysocket, (struct sockaddr *)&serv, sizeof(struct sockaddr));
+  int addrlen = sizeof(client);
+  char msg_write[TAM_BUFFER], msg_read[TAM_BUFFER];
 
-    /* start listening, allowing a queue of up to 1 pending connection */
-    listen(mysocket, 1);
-    int consocket = accept(mysocket, (struct sockaddr *)&dest, &socksize);
-  
-    while(consocket)
-    {
-        printf("Incoming connection from %s - sending welcome\n", inet_ntoa(dest.sin_addr));
-        send(consocket, msg, strlen(msg), 0); 
-        close(consocket);
-        consocket = accept(mysocket, (struct sockaddr *)&dest, &socksize);
-    }
+  printf("Abrindo socket\n");
+  s = socket(AF_INET, SOCK_STREAM, 0);
 
-    close(mysocket);
-    return EXIT_SUCCESS;
+  bzero(&self, sizeof(self));
+  self.sin_family = AF_INET;
+  self.sin_port = htons(PORTNUM);
+  self.sin_addr.s_addr = INADDR_ANY;
+
+  printf("Dando bind\n");
+  bind(s, (struct sockaddr*)&self, sizeof(self));
+
+  printf("Listen!\n");
+  listen(s, 5);
+
+  while (1) {
+    client_s = accept(s, (struct sockaddr*)&client, &addrlen);
+
+    do {
+      read(client_s, msg_read, TAM_BUFFER+1);
+      if (strcmp(msg_read,"USER") == 0) {
+        write (client_s, "  200 Logado\n", TAM_BUFFER);
+      } else if (strcmp(msg_read,"PASS") == 0) {
+        write (client_s, "  200 Senha\n", TAM_BUFFER);
+      } else {
+        write (client_s, "bye\n", TAM_BUFFER);
+        return 0;
+      }
+    } while (strcmp(msg_read,"bye") != 0);
+    close(client_s);
+  }
+
+  return 0;
 }
