@@ -1,41 +1,62 @@
-#include "common.h"
+#include "server_func.h"
 
 int main (void) {
-  int s, client_s;
-  struct sockaddr_in self, client;
-
-  int addrlen = sizeof(client);
+  int s, client_s, addr_len;
   char msg_write[TAM_BUFFER], msg_read[TAM_BUFFER];
 
-  printf("Abrindo socket\n");
-  s = socket(AF_INET, SOCK_STREAM, 0);
-
+  // Configuração do socket para receber solicitações de qualquer endereço
+  struct sockaddr_in self, client;
+  addr_len = sizeof(client);
   bzero(&self, sizeof(self));
   self.sin_family = AF_INET;
   self.sin_port = htons(PORTNUM);
   self.sin_addr.s_addr = INADDR_ANY;
 
-  printf("Dando bind\n");
-  bind(s, (struct sockaddr*)&self, sizeof(self));
+  // Reserva socket
+  s = socket(AF_INET, SOCK_STREAM, 0);
+  if (bind(s, (struct sockaddr*)&self, sizeof(self)) == -1) {
+    printf("  Falha na criação do socket\n");
+    return 0;
+  }
 
-  printf("Listen!\n");
-  listen(s, 5);
+  // Ativa escuta de conexões, máximo de 20
+  if (listen(s, 5) == -1) {
+    printf("  Falha na escuta das conexões\n");
+    return 0;
+  }
 
   while (1) {
-    client_s = accept(s, (struct sockaddr*)&client, &addrlen);
+    // Recebe conexão
+    client_s = accept(s, (struct sockaddr*)&client, &addr_len);
 
-    do {
+    // Caso erro na conexão ou mensagem solicitando encerramento
+    while (client_s != -1 || strcmp(msg_read,"bye") != 0) {
+      // Decodifica mensagem e trata
       read(client_s, msg_read, TAM_BUFFER+1);
-      if (strcmp(msg_read,"USER") == 0) {
-        write (client_s, "  200 Logado\n", TAM_BUFFER);
-      } else if (strcmp(msg_read,"PASS") == 0) {
-        write (client_s, "  200 Senha\n", TAM_BUFFER);
-      } else {
-        write (client_s, "bye\n", TAM_BUFFER);
-        return 0;
+      int message = decode_message(msg_read);
+
+      // Trata o comando recebido
+      switch (message) {
+        case -1:
+          write (client_s, "bye", TAM_BUFFER);
+          close(client_s);
+          break;
+        case 0:
+          write (client_s, "  200 Logado", TAM_BUFFER);
+          //func_user(msg_read);
+          break;
+        case 1:
+          write (client_s, "  200 Senha", TAM_BUFFER);
+          //func_pass(msg_read);
+          break;
+        default:
+          write (client_s, msg_read, TAM_BUFFER);
+          break;
       }
-    } while (strcmp(msg_read,"bye") != 0);
+    }
+
     close(client_s);
+
   }
 
   return 0;
