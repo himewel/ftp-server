@@ -2,7 +2,8 @@
 
 int main (void) {
   int s, client_s, addr_len;
-  char msg_write[TAM_BUFFER], msg_read[TAM_BUFFER];
+  char *msg_write;
+  char msg_read[TAM_BUFFER];
 
   // Configuração do socket para receber solicitações de qualquer endereço
   struct sockaddr_in self, client;
@@ -34,20 +35,19 @@ int main (void) {
       // Decodifica mensagem e trata
       read(client_s, msg_read, TAM_BUFFER+1);
       int message = decode_message(msg_read);
-
       // Trata o comando recebido
       switch (message) {
         case -1:
           write (client_s, "bye", TAM_BUFFER);
           close(client_s);
-          break;
+          return 0;
         case 0:
-          write (client_s, "  200 Logado", TAM_BUFFER);
-          //func_user(msg_read);
+          msg_write = func_user(msg_read);
+          write(client_s, msg_write, TAM_BUFFER);
           break;
         case 1:
-          write (client_s, "  200 Senha", TAM_BUFFER);
-          //func_pass(msg_read);
+          msg_write = func_pass(msg_read);
+          write(client_s, msg_write, TAM_BUFFER);
           break;
         default:
           write (client_s, msg_read, TAM_BUFFER);
