@@ -23,7 +23,7 @@ int main (void) {
   // Loop principal
   do {
     printf("%% ");
-    scanf("%s", msg_write);
+    gets(msg_write);
     write (s, msg_write, TAM_BUFFER);
     read (s, msg_read, TAM_BUFFER+1);
     printf("%s\n",msg_read);
