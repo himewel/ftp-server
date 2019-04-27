@@ -67,3 +67,18 @@ char *func_pass(char *message) {
     return "501 Syntax error in parameters or arguments.";
   }
 }
+
+// Lista arquivos da pasta especificada(comando LIST)
+FILE *arquivosContidosNoDiretorio(char nomeDoDiretorio[200]){
+  char aux[210] = "dir ";
+  FILE *arquivos;
+
+  // cria o sintax do comando dir
+  // caso nao setado o nome do diretorio vai olhar no diretorio que se encontra o arquivo
+  strcat(aux,nomeDoDiretorio);
+
+  //chama o comando no sistema e salva em um arquivo
+  arquivos =  popen(aux,"r");
+
+  return arquivos;
+}
