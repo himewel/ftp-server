@@ -12,21 +12,21 @@ Documentação das principais bibliotecas: [<uninstd.h>](http://pubs.opengroup.o
 
 | Access control commands | Transfer parameter commands | Ftp service commands |
 | ----------------------- | --------------------------- | -------------------- |
-| USER | PORT | RETR |
-| PASS | PASV | STOR |
-| ACCT | TYPE | STOU |
-| CWD | STRU | APPE |
-| CDUP | MODE | ALLO |
-| SMNT | | REST |
-| REIN | | RNFR|
-| QUIT | | RNTO |
-| PASS | | ABOR |
-| ACCT | | DELE |
-| CWD | | RMV |
-| CDUP | | MKD |
-| SMNT | | PWD |
-| REIN | | LIST |
-| QUIT | | NLST |
+| USER (0) | PORT | RETR |
+| PASS (1) | PASV | STOR |
+| ACCT (2) | TYPE | STOU |
+| CWD (3) | STRU | APPE |
+| CDUP (4) | MODE | ALLO |
+| SMNT (5) | | REST |
+| REIN (6) | | RNFR|
+| QUIT (7) | | RNTO |
+| | | ABOR |
+| | | DELE |
+| | | RMV |
+| | | MKD |
+| | | PWD |
+| | | LIST |
+| | | NLST |
 | | | SITE |
 | | | SYST |
 | | | STAT |
