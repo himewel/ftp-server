@@ -2,6 +2,7 @@
 
 int main (void) {
   int s, client_s, addr_len;
+  int flag_connection;
   char *msg_write;
   char msg_read[TAM_BUFFER];
 
@@ -29,9 +30,15 @@ int main (void) {
   while (1) {
     // Recebe conexão
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
+    write (client_s, "220 Service ready for new user.", TAM_BUFFER);
+
+    flag_connection = 1;
+
+    // Struct que mantém estado da conexão
+    ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
 
     // Caso erro na conexão ou mensagem solicitando encerramento
-    while (client_s != -1 || strcmp(msg_read,"bye") != 0) {
+    while (client_s != -1 || flag_connection == 1) {
       // Decodifica mensagem e trata
       read(client_s, msg_read, TAM_BUFFER+1);
       int message = decode_message(msg_read);
@@ -39,24 +46,31 @@ int main (void) {
       switch (message) {
         case -1:
           write (client_s, "bye", TAM_BUFFER);
-          close(client_s);
-          return 0;
+          flag_connection = 0;
+          break;
         case 0:
-          msg_write = func_user(msg_read);
-          write(client_s, msg_write, TAM_BUFFER);
+          c = func_user(c,msg_read);
+          write(client_s, c->return_message, TAM_BUFFER);
           break;
         case 1:
-          msg_write = func_pass(msg_read);
-          write(client_s, msg_write, TAM_BUFFER);
+          c = func_pass(c,msg_read);
+          write(client_s, c->return_message, TAM_BUFFER);
+          break;
+        case 2:
+          c = func_acct(c,msg_read);
+          write(client_s, c->return_message, TAM_BUFFER);
+          break;
+        case 3:
+          c = func_cwd(c,msg_read);
+          write(client_s, c->return_message, TAM_BUFFER);
           break;
         default:
           write (client_s, msg_read, TAM_BUFFER);
           break;
       }
     }
-
-    close(client_s);
-
+    free(c);
+    client_s = -1;
   }
 
   return 0;

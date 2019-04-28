@@ -13,7 +13,7 @@ int decode_message (char *command) {
     code = 1;
   } else if (strcmp(message,"acct") == 0) {
     code = 2;
-  } else if (strcmp(message,"cwd") == 0) {
+  } else if (strcmp(message,"cwd") == 0 || strcmp(message,"cwd ") == 0) {
     code = 3;
   } else if (strcmp(message,"cdup") == 0) {
     code = 4;
@@ -30,42 +30,119 @@ int decode_message (char *command) {
 }
 
 void strlwr (char s[]) {
-   int c = 0;
-   while (s[c] != '\0') {
-      if (s[c] >= 'A' && s[c] <= 'Z') {
-         s[c] = s[c] + 32;
-      }
-      c++;
-   }
+  // Tranforma caracteres da string em caixa baixa
+  int c = 0;
+  while (s[c] != '\0') {
+    if (s[c] >= 'A' && s[c] <= 'Z') {
+       s[c] = s[c] + 32;
+    }
+    c++;
+  }
 }
 
-int number_words(char *m) {
-  char *ptr = strtok(m, " ");
-  int i;
-  for (i = 0; ptr != NULL; i++) {
-    ptr = strtok(NULL, " ");
+int number_words(char **m) {
+  // Retorna número de elementos na mensagem já splitada
+  int i = 0;
+  for (int j = 0; j < MAX_ARGUMENTS; j++) {
+    if (m[j][0] != 0) {
+      i++;
+    }
   }
   return i;
 }
 
-/* CONTROLE DE ACESSO */
+char **split_words(char *m) {
+  // Separa palavras em vetor
+  char *ptr = strtok(m, " ");
 
-char *func_user(char *message) {
-  int i = number_words(message);
-  if (i == 2) {
-    return "230 User logged in, proceed.";
-  } else {
-    return "501 Syntax error in parameters or arguments.";
+  char **res = (char**) malloc(MAX_ARGUMENTS*sizeof(char*));
+  for (int i = 0; i < MAX_ARGUMENTS; i++) {
+    res[i] = (char *) malloc(STRING_SIZE*sizeof(char));
+    res[i][0] = 0;
   }
+
+  for (int i = 0; ptr != NULL && i < MAX_ARGUMENTS; i++) {
+    strcpy(res[i], ptr);
+    ptr = strtok(NULL, " ");
+  }
+  return res;
 }
 
-char *func_pass(char *message) {
-  int i = number_words(message);
+/* CONTROLE DE ACESSO */
+
+ConnectionStatus *func_user(ConnectionStatus *c, char *message) {
+  // Recebe mensagem decodificada em espaços, alocada itens do vetor
+  char **args = split_words(message);
+
+  // Número de palavras dentro da mensagem
+  int i = number_words(args);
+
+  // Controle de sintaxe através do número de argumentos
   if (i == 2) {
-    return "202 Command not implemented, superfluous at this site.";
+    if (c->logged_on != 1) {
+      strcpy(c->user, args[1]);
+      c->logged_on = 1;
+      strcpy(c->return_message, "230 User logged in, proceed.");
+    } else {
+      strcpy(c->return_message, "503 You are already logged in.");
+    }
   } else {
-    return "501 Syntax error in parameters or arguments.";
+    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
   }
+
+  // Retorna novo estado da conexão
+  return c;
+}
+
+ConnectionStatus *func_pass(ConnectionStatus *c, char *message) {
+  // Recebe mensagem decodificada em espaços, alocada itens do vetor
+  char **args = split_words(message);
+
+  // Número de palavras dentro da mensagem
+  int i = number_words(args);
+
+  // Como o comando não será implementado, apenas será verificada quantidade de
+  // argumentos
+  if (i == 2) {
+    strcpy(c->return_message, "202 Command not implemented, superfluous at this site.");
+  } else {
+    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
+  }
+
+  // Retorna novo estado da conexão
+  return c;
+}
+
+ConnectionStatus *func_acct(ConnectionStatus *c, char *message) {
+  strcpy(c->return_message,"230 User logged in, proceed.");
+  return c;
+}
+
+ConnectionStatus *func_cwd(ConnectionStatus *c, char *message) {
+  // Recebe mensagem decodificada em espaços, alocada itens do vetor
+  char **args = split_words(message);
+  // Número de palavras dentro da mensagem
+  int i = number_words(args);
+
+  if (i == 2) {
+    // Verifica a existência do diretório, caso positivo armazena na struct de
+    // estado
+    DIR *dir = opendir(args[1]);
+    if (dir != NULL) {
+      strcpy(c->actual_path, args[1]);
+      strcpy(c->return_message, "250 Requested file action okay, completed.");
+      closedir(dir);
+    }
+    else {
+      //strcpy(c->return_message, args[1]);
+      strcpy(c->return_message, "550 Requested action not taken.");
+    }
+  } else {
+    //strcpy(c->return_message, args[1]);
+    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
+  }
+
+  return c;
 }
 
 // Lista arquivos da pasta especificada(comando LIST)
