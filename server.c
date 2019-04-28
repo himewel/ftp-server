@@ -35,7 +35,7 @@ int main (void) {
     flag_connection = 1;
 
     // Struct que mantém estado da conexão
-    ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
+    ConnectionStatus *c = initializeStatus(c);
 
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (client_s != -1 || flag_connection == 1) {
@@ -62,6 +62,10 @@ int main (void) {
           break;
         case 3:
           c = func_cwd(c,msg_read);
+          write(client_s, c->return_message, TAM_BUFFER);
+          break;
+        case 4:
+          c = func_cdup(c,msg_read);
           write(client_s, c->return_message, TAM_BUFFER);
           break;
         default:

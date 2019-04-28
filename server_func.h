@@ -14,6 +14,8 @@ struct connection_status {
 
 typedef struct connection_status ConnectionStatus;
 
+ConnectionStatus *initializeStatus();
+
 /* DECODIFICAÇÃO DO COMANDO */
 int decode_message (char *command);
 void strlwr (char *s);
@@ -25,3 +27,4 @@ ConnectionStatus *func_user(ConnectionStatus *c, char *message);
 ConnectionStatus *func_pass(ConnectionStatus *c, char *message);
 ConnectionStatus *func_acct(ConnectionStatus *c, char *message);
 ConnectionStatus *func_cwd(ConnectionStatus *c, char *message);
+ConnectionStatus *func_cdup(ConnectionStatus *c, char *message);

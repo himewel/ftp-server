@@ -1,5 +1,16 @@
 #include "server_func.h"
 
+ConnectionStatus *initializeStatus() {
+  ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
+
+  getcwd(c->actual_path, sizeof(c->actual_path));
+  strcat(c->actual_path, "/");
+
+  return c;
+};
+
+
+
 /* DECODIFICAÇÃO DO COMANDO */
 
 int decode_message (char *command) {
@@ -127,19 +138,45 @@ ConnectionStatus *func_cwd(ConnectionStatus *c, char *message) {
   if (i == 2) {
     // Verifica a existência do diretório, caso positivo armazena na struct de
     // estado
-    DIR *dir = opendir(args[1]);
+    char consult[STRING_SIZE];
+    if (args[1][0] == '/') {
+      strcpy(consult, args[1]);
+    } else {
+      strcat(consult, c->actual_path);
+      strcat(consult, args[1]);
+    }
+
+    strcat(consult, "/");
+
+    DIR *dir = opendir(consult);
     if (dir != NULL) {
-      strcpy(c->actual_path, args[1]);
+      strcpy(c->actual_path, consult);
       strcpy(c->return_message, "250 Requested file action okay, completed.");
       closedir(dir);
     }
     else {
-      //strcpy(c->return_message, args[1]);
       strcpy(c->return_message, "550 Requested action not taken.");
     }
   } else {
-    //strcpy(c->return_message, args[1]);
     strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
+  }
+
+  return c;
+}
+
+ConnectionStatus *func_cdup(ConnectionStatus *c, char *message) {
+  char consult[STRING_SIZE];
+  strcpy(consult, c->actual_path);
+  strcat(consult, "../");
+
+  DIR *dir = opendir(consult);
+  if (dir != NULL) {
+    strcpy(c->actual_path, consult);
+    strcpy(c->return_message, "200 Command okay.");
+    closedir(dir);
+  }
+  else {
+    strcpy(c->return_message, "550 Requested action not taken.");
   }
 
   return c;
