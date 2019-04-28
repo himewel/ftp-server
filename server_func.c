@@ -111,3 +111,8 @@ ConnectionStatus *func_pass(ConnectionStatus *c, char *message) {
   // Retorna novo estado da conexão
   return c;
 }
+
+ConnectionStatus *func_acct(ConnectionStatus *c, char *message) {
+  strcpy(c->return_message,"230 User logged in, proceed.");
+  return c;
+}

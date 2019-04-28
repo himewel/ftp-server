@@ -33,6 +33,8 @@ int main (void) {
     write (client_s, "220 Service ready for new user.", TAM_BUFFER);
 
     flag_connection = 1;
+
+    // Struct que mantém estado da conexão
     ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
 
     // Caso erro na conexão ou mensagem solicitando encerramento
@@ -52,6 +54,10 @@ int main (void) {
           break;
         case 1:
           c = func_pass(c,msg_read);
+          write(client_s, c->return_message, TAM_BUFFER);
+          break;
+        case 2:
+          c = func_acct(c,msg_read);
           write(client_s, c->return_message, TAM_BUFFER);
           break;
         default:

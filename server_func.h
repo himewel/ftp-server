@@ -20,3 +20,4 @@ char **split_words(char *m);
 /* CONTROLE DE ACESSO */
 ConnectionStatus *func_user(ConnectionStatus *c, char *message);
 ConnectionStatus *func_pass(ConnectionStatus *c, char *message);
+ConnectionStatus *func_acct(ConnectionStatus *c, char *message);
