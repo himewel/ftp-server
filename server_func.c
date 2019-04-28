@@ -3,7 +3,9 @@
 ConnectionStatus *initializeStatus() {
   ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
   // Configura diretório atual
-  strcat(c->actual_path, "./");
+  strcpy(c->actual_path, "./");
+  strcpy(c->user,"");
+  c->logged_on = 0;
 
   return c;
 };
@@ -191,5 +193,12 @@ ConnectionStatus *func_cdup(ConnectionStatus *c, char *message) {
 
 ConnectionStatus *func_smnt(ConnectionStatus *c, char *message) {
   strcpy(c->return_message,"502 Command not implemented.");
+  return c;
+}
+
+ConnectionStatus *func_reint(ConnectionStatus *c, char *message) {
+  free(c);
+  c = initializeStatus();
+  strcpy(c->return_message,"220 Service ready for new user.");
   return c;
 }
