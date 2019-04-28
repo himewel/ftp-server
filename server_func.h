@@ -10,6 +10,7 @@ struct connection_status {
   int logged_on;
   char return_message[STRING_SIZE];
   char actual_path[STRING_SIZE];
+  int connection_ok;
 };
 
 typedef struct connection_status ConnectionStatus;
@@ -23,10 +24,11 @@ int number_words(char **m);
 char **split_words(char *m);
 
 /* CONTROLE DE ACESSO */
-ConnectionStatus *func_user(ConnectionStatus *c, char *message);
-ConnectionStatus *func_pass(ConnectionStatus *c, char *message);
-ConnectionStatus *func_acct(ConnectionStatus *c, char *message);
-ConnectionStatus *func_cwd(ConnectionStatus *c, char *message);
-ConnectionStatus *func_cdup(ConnectionStatus *c, char *message);
-ConnectionStatus *func_smnt(ConnectionStatus *c, char *message);
-ConnectionStatus *func_rein(ConnectionStatus *c, char *message);
+char *func_user(ConnectionStatus *c, char *message);
+char *func_pass(ConnectionStatus *c, char *message);
+char *func_acct(ConnectionStatus *c, char *message);
+char *func_cwd(ConnectionStatus *c, char *message);
+char *func_cdup(ConnectionStatus *c, char *message);
+char *func_smnt(ConnectionStatus *c, char *message);
+char *func_rein(ConnectionStatus *c, char *message);
+char *func_quit(ConnectionStatus *c, char *message);

@@ -3,7 +3,7 @@
 int main (void) {
   int s, client_s, addr_len;
   int flag_connection;
-  char *msg_write;
+  char *return_message;
   char msg_read[TAM_BUFFER];
 
   // Configuração do socket para receber solicitações de qualquer endereço
@@ -32,53 +32,45 @@ int main (void) {
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     write (client_s, "220 Service ready for new user.", TAM_BUFFER);
 
-    flag_connection = 1;
-
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus(c);
 
     // Caso erro na conexão ou mensagem solicitando encerramento
-    while (client_s != -1 || flag_connection == 1) {
+    while (client_s != -1 && c->connection_ok == 1) {
       // Decodifica mensagem e trata
       read(client_s, msg_read, TAM_BUFFER+1);
       int message = decode_message(msg_read);
       // Trata o comando recebido
       switch (message) {
-        case -1:
-          write (client_s, "bye", TAM_BUFFER);
-          flag_connection = 0;
-          break;
         case 0:
-          c = func_user(c,msg_read);
-          write(client_s, c->return_message, TAM_BUFFER);
+          return_message = func_user(c, msg_read);
           break;
         case 1:
-          c = func_pass(c,msg_read);
-          write(client_s, c->return_message, TAM_BUFFER);
+          return_message = func_pass(c,msg_read);
           break;
         case 2:
-          c = func_acct(c,msg_read);
-          write(client_s, c->return_message, TAM_BUFFER);
+          return_message = func_acct(c,msg_read);
           break;
         case 3:
-          c = func_cwd(c,msg_read);
-          write(client_s, c->return_message, TAM_BUFFER);
+          return_message = func_cwd(c,msg_read);
           break;
         case 4:
-          c = func_cdup(c,msg_read);
-          write(client_s, c->return_message, TAM_BUFFER);
+          return_message = func_cdup(c,msg_read);
           break;
         case 5:
-          c = func_smnt(c,msg_read);
-          write(client_s, c->return_message, TAM_BUFFER);
+          return_message = func_smnt(c,msg_read);
           break;
         case 6:
-          c = func_rein(c,msg_read);
-          write(client_s, c->return_message, TAM_BUFFER);
+          return_message = func_rein(c,msg_read);
+          break;
+        case 7:
+          return_message = func_quit(c,msg_read);
+          break;
         default:
-          write (client_s, msg_read, TAM_BUFFER);
+          return_message = "500 Syntax error, command unrecognized.";
           break;
       }
+      write(client_s, return_message, TAM_BUFFER);
     }
     free(c);
     client_s = -1;

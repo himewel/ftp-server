@@ -6,6 +6,7 @@ ConnectionStatus *initializeStatus() {
   strcpy(c->actual_path, "./");
   strcpy(c->user,"");
   c->logged_on = 0;
+  c->connection_ok = 1;
 
   return c;
 };
@@ -83,9 +84,10 @@ char **split_words(char *m) {
 
 /* CONTROLE DE ACESSO */
 
-ConnectionStatus *func_user(ConnectionStatus *c, char *message) {
+char *func_user(ConnectionStatus *c, char *message) {
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message);
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
 
   // Número de palavras dentro da mensagem
   int i = number_words(args);
@@ -95,21 +97,22 @@ ConnectionStatus *func_user(ConnectionStatus *c, char *message) {
     if (c->logged_on != 1) {
       strcpy(c->user, args[1]);
       c->logged_on = 1;
-      strcpy(c->return_message, "230 User logged in, proceed.");
+      return_message = "230 User logged in, proceed.";
     } else {
-      strcpy(c->return_message, "503 You are already logged in.");
+      return_message = "503 You are already logged in.";
     }
   } else {
-    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
+    return_message ="501 Syntax error in parameters or arguments.";
   }
 
   // Retorna novo estado da conexão
-  return c;
+  return return_message;
 }
 
-ConnectionStatus *func_pass(ConnectionStatus *c, char *message) {
+char *func_pass(ConnectionStatus *c, char *message) {
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message);
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
 
   // Número de palavras dentro da mensagem
   int i = number_words(args);
@@ -117,21 +120,23 @@ ConnectionStatus *func_pass(ConnectionStatus *c, char *message) {
   // Como o comando não será implementado, apenas será verificada quantidade de
   // argumentos
   if (i == 2) {
-    strcpy(c->return_message, "202 Command not implemented, superfluous at this site.");
+    return_message = "202 Command not implemented, superfluous at this site.";
   } else {
-    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
+    return_message = "501 Syntax error in parameters or arguments.";
   }
 
   // Retorna novo estado da conexão
-  return c;
+  return return_message;
 }
 
-ConnectionStatus *func_acct(ConnectionStatus *c, char *message) {
-  strcpy(c->return_message,"230 User logged in, proceed.");
-  return c;
+char *func_acct(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  return_message = "230 User logged in, proceed.";
+  return return_message;
 }
 
-ConnectionStatus *func_cwd(ConnectionStatus *c, char *message) {
+char *func_cwd(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message);
   // Número de palavras dentro da mensagem
@@ -160,20 +165,21 @@ ConnectionStatus *func_cwd(ConnectionStatus *c, char *message) {
     DIR *dir = opendir(consult);
     if (dir != NULL) {
       strcpy(c->actual_path, consult);
-      strcpy(c->return_message, "250 Requested file action okay, completed.");
+      return_message = "250 Requested file action okay, completed.";
       closedir(dir);
     }
     else {
-      strcpy(c->return_message, "550 Requested action not taken.");
+      return_message = "550 Requested action not taken.";
     }
   } else {
-    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
+    return_message = "501 Syntax error in parameters or arguments.";
   }
 
-  return c;
+  return return_message;
 }
 
-ConnectionStatus *func_cdup(ConnectionStatus *c, char *message) {
+char *func_cdup(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Utiliza uma variável auxiliar para consulta da existencia do diretório
   char consult[STRING_SIZE];
   strcpy(consult, c->actual_path);
@@ -184,24 +190,33 @@ ConnectionStatus *func_cdup(ConnectionStatus *c, char *message) {
   DIR *dir = opendir(consult);
   if (dir != NULL) {
     strcpy(c->actual_path, consult);
-    strcpy(c->return_message, "200 Command okay.");
+    return_message = "200 Command okay.";
     closedir(dir);
   }
   else {
-    strcpy(c->return_message, "550 Requested action not taken.");
+    return_message = "550 Requested action not taken.";
   }
 
-  return c;
+  return return_message;
 }
 
-ConnectionStatus *func_smnt(ConnectionStatus *c, char *message) {
-  strcpy(c->return_message,"502 Command not implemented.");
-  return c;
+char *func_smnt(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  return_message = "502 Command not implemented.";
+  return return_message;
 }
 
-ConnectionStatus *func_rein(ConnectionStatus *c, char *message) {
+char *func_rein(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   free(c);
   c = initializeStatus();
-  strcpy(c->return_message,"220 Service ready for new user.");
-  return c;
+  return_message = "220 Service ready for new user.";
+  return return_message;
+}
+
+char *func_quit(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  c->connection_ok = 0;
+  return_message = "221 Service closing control connection.";
+  return return_message;
 }
