@@ -28,3 +28,4 @@ ConnectionStatus *func_pass(ConnectionStatus *c, char *message);
 ConnectionStatus *func_acct(ConnectionStatus *c, char *message);
 ConnectionStatus *func_cwd(ConnectionStatus *c, char *message);
 ConnectionStatus *func_cdup(ConnectionStatus *c, char *message);
+ConnectionStatus *func_smnt(ConnectionStatus *c, char *message);

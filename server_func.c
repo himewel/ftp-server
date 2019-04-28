@@ -188,3 +188,8 @@ ConnectionStatus *func_cdup(ConnectionStatus *c, char *message) {
 
   return c;
 }
+
+ConnectionStatus *func_smnt(ConnectionStatus *c, char *message) {
+  strcpy(c->return_message,"502 Command not implemented.");
+  return c;
+}
