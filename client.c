@@ -19,7 +19,7 @@ int main (void) {
 
   // Solicita conexão com o servidor configurado
   int connect_succefull = connect(s, (struct sockaddr *)&dest, sizeof(dest));
-  if (connect_succefull == 1) {
+  if (connect_succefull == 0) {
     read (s, msg_read, TAM_BUFFER+1);
   } else {
     strcpy(msg_read,"421 Service not available, closing control connection.");
