@@ -13,25 +13,28 @@ ConnectionStatus *initializeStatus() {
 /* DECODIFICAÇÃO DO COMANDO */
 
 int decode_message (char *command) {
-  char message[4];
-  strncpy(message, command, 4);
-  strlwr(message);
+  char aux[STRING_SIZE];
+  strcpy(aux, command);
+  char **args = split_words(aux);
+
+  strlwr(args[0]);
+
   int code;
-  if (strcmp(message,"user") == 0) {
+  if (strcmp(args[0],"user") == 0) {
     code = 0;
-  } else if (strcmp(message,"pass") == 0) {
+  } else if (strcmp(args[0],"pass") == 0) {
     code = 1;
-  } else if (strcmp(message,"acct") == 0) {
+  } else if (strcmp(args[0],"acct") == 0) {
     code = 2;
-  } else if (strcmp(message,"cwd") == 0 || strcmp(message,"cwd ") == 0) {
+  } else if (strcmp(args[0],"cwd") == 0) {
     code = 3;
-  } else if (strcmp(message,"cdup") == 0) {
+  } else if (strcmp(args[0],"cdup") == 0) {
     code = 4;
-  } else if (strcmp(message,"smnt") == 0) {
+  } else if (strcmp(args[0],"smnt") == 0) {
     code = 5;
-  } else if (strcmp(message,"rein") == 0) {
+  } else if (strcmp(args[0],"rein") == 0) {
     code = 6;
-  } else if (strcmp(message,"quit") == 0) {
+  } else if (strcmp(args[0],"quit") == 0) {
     code = 7;
   } else {
     code = -1000;
@@ -196,7 +199,7 @@ ConnectionStatus *func_smnt(ConnectionStatus *c, char *message) {
   return c;
 }
 
-ConnectionStatus *func_reint(ConnectionStatus *c, char *message) {
+ConnectionStatus *func_rein(ConnectionStatus *c, char *message) {
   free(c);
   c = initializeStatus();
   strcpy(c->return_message,"220 Service ready for new user.");

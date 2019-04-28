@@ -29,4 +29,4 @@ ConnectionStatus *func_acct(ConnectionStatus *c, char *message);
 ConnectionStatus *func_cwd(ConnectionStatus *c, char *message);
 ConnectionStatus *func_cdup(ConnectionStatus *c, char *message);
 ConnectionStatus *func_smnt(ConnectionStatus *c, char *message);
-ConnectionStatus *func_reint(ConnectionStatus *c, char *message);
+ConnectionStatus *func_rein(ConnectionStatus *c, char *message);

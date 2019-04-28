@@ -73,7 +73,7 @@ int main (void) {
           write(client_s, c->return_message, TAM_BUFFER);
           break;
         case 6:
-          c = func_reint(c,msg_read);
+          c = func_rein(c,msg_read);
           write(client_s, c->return_message, TAM_BUFFER);
         default:
           write (client_s, msg_read, TAM_BUFFER);
