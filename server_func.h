@@ -1,6 +1,9 @@
 #include "common.h"
 #include <sys/stat.h>
 #include <dirent.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
 
 #define MAX_ARGUMENTS 5
 #define STRING_SIZE 500
@@ -32,3 +35,4 @@ char *func_cdup(ConnectionStatus *c, char *message);
 char *func_smnt(ConnectionStatus *c, char *message);
 char *func_rein(ConnectionStatus *c, char *message);
 char *func_quit(ConnectionStatus *c, char *message);
+char *func_list(ConnectionStatus *c, char *message);

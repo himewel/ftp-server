@@ -63,9 +63,12 @@ int main (void) {
         case 6:
           return_message = func_rein(c,msg_read);
           break;
-        case 7:
-          return_message = func_quit(c,msg_read);
-          break;
+          case 7:
+            return_message = func_quit(c,msg_read);
+            break;
+          case 8:
+            return_message = func_list(c,msg_read);
+            break;
         default:
           return_message = "500 Syntax error, command unrecognized.";
           break;

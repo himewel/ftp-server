@@ -37,6 +37,8 @@ int decode_message (char *command) {
     code = 6;
   } else if (strcmp(args[0],"quit") == 0) {
     code = 7;
+  } else if (strcmp(args[0],"list") == 0) {
+    code = 8;
   } else {
     code = -1000;
   }
@@ -222,16 +224,37 @@ char *func_quit(ConnectionStatus *c, char *message) {
 }
 
 // Lista arquivos da pasta especificada(comando LIST)
-FILE *arquivosContidosNoDiretorio(char nomeDoDiretorio[200]){
+
+char *func_list(ConnectionStatus *c,char *message){
   char aux[210] = "dir ";
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  char *path = (char*) malloc(STRING_SIZE*sizeof(char));
   FILE *arquivos;
+  char ch;
+  int i,j = 0;
+
+  //retirando os 4 primeiros digitos (pois eles contem list )
+  for (int i = 4;message[i]!= NULL;i++) {
+    path[j] = message[i];
+    j++;
+  }
 
   // cria o sintax do comando dir
   // caso nao setado o nome do diretorio vai olhar no diretorio que se encontra o arquivo
-  strcat(aux,nomeDoDiretorio);
+  strcat(aux,path);
+
+  // faz com que os erros sejam escritos na menssagem caso ocorra
+  strcat(aux," 2>&1");
 
   //chama o comando no sistema e salva em um arquivo
   arquivos =  popen(aux,"r");
 
-  return arquivos;
+
+  //converte o arquivo para string
+  for(i =0;((ch = fgetc(arquivos)) != EOF);i++){
+     return_message[i] = ch;
+   }
+
+   pclose(arquivos);
+  return return_message;
 }
