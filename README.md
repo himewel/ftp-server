@@ -8,6 +8,18 @@ Especificação do protocolo segundo a RFC 959: https://www.ietf.org/rfc/rfc959.
 
 Documentação das principais bibliotecas: [<uninstd.h>](http://pubs.opengroup.org/onlinepubs/007908799/xsh/unistd.h.html), [<sys/socket.h>](https://pubs.opengroup.org/onlinepubs/7908799/xns/syssocket.h.html).
 
+# Instalação e execução
+
+* Compilando programa do cliente: gcc client*.c -o client.out.
+
+* Compilando programa do servidor: gcc server*.c -o server.out.
+
+Dessa forma os executáveis gerados são ignorados pelo gitignore.
+
+Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, evitando um "421 Service not available, closing control connection." por parte do cliente.
+
+Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN, QUIT.
+
 # FTP commands
 
 | Access control commands | Transfer parameter commands | Ftp service commands |

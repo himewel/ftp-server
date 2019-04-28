@@ -18,19 +18,22 @@ int main (void) {
   dest.sin_port = htons(PORTNUM);
 
   // Solicita conexão com o servidor configurado
-  connect(s, (struct sockaddr *)&dest, sizeof(dest));
-  
-  read (s, msg_read, TAM_BUFFER+1);
+  int connect_succefull = connect(s, (struct sockaddr *)&dest, sizeof(dest));
+  if (connect_succefull == 1) {
+    read (s, msg_read, TAM_BUFFER+1);
+  } else {
+    strcpy(msg_read,"421 Service not available, closing control connection.");
+  }
   printf("%s\n",msg_read);
 
   // Loop principal
-  do {
+  while (strcmp(msg_read, "221 Service closing control connection.") != 0 && strcmp(msg_read,"421 Service not available, closing control connection.") != 0) {
     printf("%% ");
     gets(msg_write);
     write (s, msg_write, TAM_BUFFER);
     read (s, msg_read, TAM_BUFFER+1);
     printf("%s\n",msg_read);
-  } while (strcmp(msg_write,"bye") != 0);
+  }
 
   // Fecha conexão
   close(s);
