@@ -2,21 +2,18 @@
 
 ConnectionStatus *initializeStatus() {
   ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
-
-  getcwd(c->actual_path, sizeof(c->actual_path));
-  strcat(c->actual_path, "/");
+  // Configura diretório atual
+  strcat(c->actual_path, "./");
 
   return c;
 };
-
-
 
 /* DECODIFICAÇÃO DO COMANDO */
 
 int decode_message (char *command) {
   char message[4];
-  strlwr(command);
   strncpy(message, command, 4);
+  strlwr(message);
   int code;
   if (strcmp(message,"user") == 0) {
     code = 0;
@@ -138,16 +135,23 @@ ConnectionStatus *func_cwd(ConnectionStatus *c, char *message) {
   if (i == 2) {
     // Verifica a existência do diretório, caso positivo armazena na struct de
     // estado
+    // Utiliza uma variável auxiliar para consulta da existencia do diretório
     char consult[STRING_SIZE];
     if (args[1][0] == '/') {
-      strcpy(consult, args[1]);
+      // Caso destino seja /, não coloca outra / no final
+      if (strcmp(args[1], "/") != 0) {
+        strcpy(consult, args[1]);
+      } else {
+        strcpy(consult, "");
+      }
     } else {
-      strcat(consult, c->actual_path);
+      // Concatena destino com caminho atual
+      strcpy(consult, c->actual_path);
       strcat(consult, args[1]);
     }
-
     strcat(consult, "/");
 
+    // Consulta existência do diretório
     DIR *dir = opendir(consult);
     if (dir != NULL) {
       strcpy(c->actual_path, consult);
@@ -165,10 +169,13 @@ ConnectionStatus *func_cwd(ConnectionStatus *c, char *message) {
 }
 
 ConnectionStatus *func_cdup(ConnectionStatus *c, char *message) {
+  // Utiliza uma variável auxiliar para consulta da existencia do diretório
   char consult[STRING_SIZE];
   strcpy(consult, c->actual_path);
+  // Concatena ../ nbo final do caminho
   strcat(consult, "../");
 
+  // Consulta existência do diretório
   DIR *dir = opendir(consult);
   if (dir != NULL) {
     strcpy(c->actual_path, consult);
