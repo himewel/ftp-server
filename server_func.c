@@ -52,15 +52,14 @@ int number_words(char *m) {
 
 char **split_words(char *m) {
   // Separa palavras em vetor
-  int i;
   char *ptr = strtok(m, " ");
 
   char **res = (char**) malloc(MAX_ARGUMENTS*sizeof(char*));
-  for (i = 0; i < MAX_ARGUMENTS; i++) {
+  for (int i = 0; i < MAX_ARGUMENTS; i++) {
     res[i] = (char *) malloc(STRING_SIZE*sizeof(char));
   }
 
-  for (i = 0; ptr != NULL && i < MAX_ARGUMENTS; i++) {
+  for (int i = 0; ptr != NULL && i < MAX_ARGUMENTS; i++) {
     strcpy(res[i], ptr);
     ptr = strtok(NULL, " ");
   }
@@ -75,8 +74,8 @@ ConnectionStatus *func_user(ConnectionStatus *c, char *message) {
 
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = (char**) malloc(MAX_ARGUMENTS*sizeof(char*));
-  for (i = 0; i < MAX_ARGUMENTS; i++) {
-    args[i] = (char *) malloc(STRING_SIZE*sizeof(char));
+  for (int j = 0; j < MAX_ARGUMENTS; j++) {
+    args[j] = (char *) malloc(STRING_SIZE*sizeof(char));
   }
   args = split_words(message);
 
@@ -92,15 +91,23 @@ ConnectionStatus *func_user(ConnectionStatus *c, char *message) {
   } else {
     strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
   }
+
   // Retorna novo estado da conexão
   return c;
 }
 
 ConnectionStatus *func_pass(ConnectionStatus *c, char *message) {
+  // Número de palavras dentro da mensagem
   int i = number_words(message);
+
+  // Como o comando não será implementado, apenas será verificada quantidade de
+  // argumentos
   if (i == 2) {
-    return c;
+    strcpy(c->return_message, "202 Command not implemented, superfluous at this site.");
   } else {
-    return c;
+    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
   }
+
+  // Retorna novo estado da conexão
+  return c;
 }
