@@ -19,6 +19,9 @@ int main (void) {
 
   // Solicita conexão com o servidor configurado
   connect(s, (struct sockaddr *)&dest, sizeof(dest));
+  
+  read (s, msg_read, TAM_BUFFER+1);
+  printf("%s\n",msg_read);
 
   // Loop principal
   do {
