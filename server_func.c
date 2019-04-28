@@ -13,7 +13,7 @@ int decode_message (char *command) {
     code = 1;
   } else if (strcmp(message,"acct") == 0) {
     code = 2;
-  } else if (strcmp(message,"cwd") == 0) {
+  } else if (strcmp(message,"cwd") == 0 || strcmp(message,"cwd ") == 0) {
     code = 3;
   } else if (strcmp(message,"cdup") == 0) {
     code = 4;
@@ -40,12 +40,13 @@ void strlwr (char s[]) {
   }
 }
 
-int number_words(char *m) {
-  // Retorna número de palavras na string
-  char *ptr = strtok(m, " ");
-  int i;
-  for (i = 0; ptr != NULL; i++) {
-    ptr = strtok(NULL, " ");
+int number_words(char **m) {
+  // Retorna número de elementos na mensagem já splitada
+  int i = 0;
+  for (int j = 0; j < MAX_ARGUMENTS; j++) {
+    if (m[j][0] != 0) {
+      i++;
+    }
   }
   return i;
 }
@@ -57,6 +58,7 @@ char **split_words(char *m) {
   char **res = (char**) malloc(MAX_ARGUMENTS*sizeof(char*));
   for (int i = 0; i < MAX_ARGUMENTS; i++) {
     res[i] = (char *) malloc(STRING_SIZE*sizeof(char));
+    res[i][0] = 0;
   }
 
   for (int i = 0; ptr != NULL && i < MAX_ARGUMENTS; i++) {
@@ -69,15 +71,11 @@ char **split_words(char *m) {
 /* CONTROLE DE ACESSO */
 
 ConnectionStatus *func_user(ConnectionStatus *c, char *message) {
-  // Número de palavras dentro da mensagem
-  int i = number_words(message);
-
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
-  char **args = (char**) malloc(MAX_ARGUMENTS*sizeof(char*));
-  for (int j = 0; j < MAX_ARGUMENTS; j++) {
-    args[j] = (char *) malloc(STRING_SIZE*sizeof(char));
-  }
-  args = split_words(message);
+  char **args = split_words(message);
+
+  // Número de palavras dentro da mensagem
+  int i = number_words(args);
 
   // Controle de sintaxe através do número de argumentos
   if (i == 2) {
@@ -97,8 +95,11 @@ ConnectionStatus *func_user(ConnectionStatus *c, char *message) {
 }
 
 ConnectionStatus *func_pass(ConnectionStatus *c, char *message) {
+  // Recebe mensagem decodificada em espaços, alocada itens do vetor
+  char **args = split_words(message);
+
   // Número de palavras dentro da mensagem
-  int i = number_words(message);
+  int i = number_words(args);
 
   // Como o comando não será implementado, apenas será verificada quantidade de
   // argumentos
@@ -114,5 +115,32 @@ ConnectionStatus *func_pass(ConnectionStatus *c, char *message) {
 
 ConnectionStatus *func_acct(ConnectionStatus *c, char *message) {
   strcpy(c->return_message,"230 User logged in, proceed.");
+  return c;
+}
+
+ConnectionStatus *func_cwd(ConnectionStatus *c, char *message) {
+  // Recebe mensagem decodificada em espaços, alocada itens do vetor
+  char **args = split_words(message);
+  // Número de palavras dentro da mensagem
+  int i = number_words(args);
+
+  if (i == 2) {
+    // Verifica a existência do diretório, caso positivo armazena na struct de
+    // estado
+    DIR *dir = opendir(args[1]);
+    if (dir != NULL) {
+      strcpy(c->actual_path, args[1]);
+      strcpy(c->return_message, "250 Requested file action okay, completed.");
+      closedir(dir);
+    }
+    else {
+      //strcpy(c->return_message, args[1]);
+      strcpy(c->return_message, "550 Requested action not taken.");
+    }
+  } else {
+    //strcpy(c->return_message, args[1]);
+    strcpy(c->return_message, "501 Syntax error in parameters or arguments.");
+  }
+
   return c;
 }

@@ -60,6 +60,10 @@ int main (void) {
           c = func_acct(c,msg_read);
           write(client_s, c->return_message, TAM_BUFFER);
           break;
+        case 3:
+          c = func_cwd(c,msg_read);
+          write(client_s, c->return_message, TAM_BUFFER);
+          break;
         default:
           write (client_s, msg_read, TAM_BUFFER);
           break;
