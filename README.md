@@ -10,15 +10,15 @@ Documentação das principais bibliotecas: [<uninstd.h>](http://pubs.opengroup.o
 
 # Instalação e execução
 
-* Compilando programa do cliente: gcc client*.c -o client.out.
-
 * Compilando programa do servidor: gcc server*.c -o server.out.
 
 Dessa forma os executáveis gerados são ignorados pelo gitignore.
 
-Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, evitando um "421 Service not available, closing control connection." por parte do cliente.
+Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, evitando um "421 Service not available, closing control connection.".
 
-Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN, QUIT, PWD, LIST, MKD, RMD,NOOP.
+A porta padrão utilizada é a 2300, a conexão inicialmente é realizada pelo localhost.
+
+Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN, QUIT, PWD, LIST, MKD, RMD, NOOP.
 
 # FTP commands
 
@@ -43,4 +43,4 @@ Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN,
 | | | SYST |
 | | | STAT |
 | | | HELP |
-| | | NOOP(12) |
+| | | NOOP (12) |
