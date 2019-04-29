@@ -3,11 +3,12 @@
 ConnectionStatus *initializeStatus() {
   ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
   // Configura diretório atual
-  strcpy(c->actual_path, "./");
-  strcpy(c->user,"");
+  getcwd(c->actual_path, sizeof(c->actual_path));
+  strcat(c->actual_path, "/");
+  strcpy(c->user, "");
+
   c->logged_on = 0;
   c->connection_ok = 1;
-
   return c;
 };
 
@@ -39,6 +40,8 @@ int decode_message (char *command) {
     code = 7;
   } else if (strcmp(args[0],"list") == 0) {
     code = 8;
+  } else if (strcmp(args[0],"pwd") == 0) {
+    code = 9;
   } else {
     code = -1000;
   }
@@ -225,7 +228,8 @@ char *func_quit(ConnectionStatus *c, char *message) {
 
 // Lista arquivos da pasta especificada(comando LIST)
 
-char *func_list(ConnectionStatus *c,char *message){
+char *func_list(ConnectionStatus *c,char *message) {
+  chdir(c->actual_path);
   char aux[210] = "dir ";
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   char *path = (char*) malloc(STRING_SIZE*sizeof(char));
@@ -252,9 +256,19 @@ char *func_list(ConnectionStatus *c,char *message){
 
   //converte o arquivo para string
   for(i =0;((ch = fgetc(arquivos)) != EOF);i++){
-     return_message[i] = ch;
-   }
+    return_message[i] = ch;
+  }
 
-   pclose(arquivos);
+  pclose(arquivos);
   return return_message;
+}
+
+char *func_pwd(ConnectionStatus *c,char *message) {
+  // Muda diretório raiz para o determinado na struct
+  chdir(c->actual_path);
+  // Pega nome real do diretório
+  getcwd(c->actual_path, sizeof(c->actual_path));
+  strcat(c->actual_path, "/");
+
+  return c->actual_path;
 }
