@@ -33,7 +33,7 @@ int main (void) {
     write (client_s, "220 Service ready for new user.", TAM_BUFFER);
 
     // Struct que mantém estado da conexão
-    ConnectionStatus *c = initializeStatus(c);
+    ConnectionStatus *c = initializeStatus();
 
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (client_s != -1 && c->connection_ok == 1) {
@@ -63,12 +63,18 @@ int main (void) {
         case 6:
           return_message = func_rein(c,msg_read);
           break;
-          case 7:
-            return_message = func_quit(c,msg_read);
-            break;
-          case 8:
-            return_message = func_list(c,msg_read);
-            break;
+        case 7:
+          return_message = func_quit(c,msg_read);
+          break;
+        case 8:
+          return_message = func_list(c,msg_read);
+          break;
+        case 9:
+          return_message = func_pwd(c,msg_read);
+          break;
+        case 10:
+          return_message = func_mkd(c,msg_read);
+          break;
         default:
           return_message = "500 Syntax error, command unrecognized.";
           break;

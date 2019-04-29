@@ -3,11 +3,12 @@
 ConnectionStatus *initializeStatus() {
   ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
   // Configura diretório atual
-  strcpy(c->actual_path, "./");
-  strcpy(c->user,"");
+  getcwd(c->actual_path, sizeof(c->actual_path));
+  strcat(c->actual_path, "/");
+  strcpy(c->user, "");
+
   c->logged_on = 0;
   c->connection_ok = 1;
-
   return c;
 };
 
@@ -39,6 +40,10 @@ int decode_message (char *command) {
     code = 7;
   } else if (strcmp(args[0],"list") == 0) {
     code = 8;
+  } else if (strcmp(args[0],"pwd") == 0) {
+    code = 9;
+  } else if (strcmp(args[0],"mkd") == 0) {
+    code = 10;
   } else {
     code = -1000;
   }
@@ -167,7 +172,7 @@ char *func_cwd(ConnectionStatus *c, char *message) {
     DIR *dir = opendir(consult);
     if (dir != NULL) {
       strcpy(c->actual_path, consult);
-      return_message = "250 Requested file action okay, completed.";
+      return_message = "200 Working directory changed.";
       closedir(dir);
     }
     else {
@@ -225,7 +230,8 @@ char *func_quit(ConnectionStatus *c, char *message) {
 
 // Lista arquivos da pasta especificada(comando LIST)
 
-char *func_list(ConnectionStatus *c,char *message){
+char *func_list(ConnectionStatus *c,char *message) {
+  chdir(c->actual_path);
   char aux[210] = "dir ";
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   char *path = (char*) malloc(STRING_SIZE*sizeof(char));
@@ -252,9 +258,53 @@ char *func_list(ConnectionStatus *c,char *message){
 
   //converte o arquivo para string
   for(i =0;((ch = fgetc(arquivos)) != EOF);i++){
-     return_message[i] = ch;
-   }
+    return_message[i] = ch;
+  }
 
-   pclose(arquivos);
+  pclose(arquivos);
   return return_message;
+}
+
+char *func_pwd(ConnectionStatus *c,char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  // Muda diretório raiz para o determinado na struct
+  chdir(c->actual_path);
+  // Pega nome real do diretório
+  getcwd(c->actual_path, sizeof(c->actual_path));
+  strcat(c->actual_path, "/");
+  // Formata string de resposta
+  char aux[STRING_SIZE];
+  strcpy(aux, "257 \"");
+  strcat(aux, c->actual_path);
+  strcat(aux, "\" path name.");
+  return_message = aux;
+
+  return return_message;
+}
+
+char *func_mkd(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  // Recebe mensagem decodificada em espaços, alocada itens do vetor
+  char **args = split_words(message);
+  // Número de palavras dentro da mensagem
+  int i = number_words(args);
+
+  if (i == 2) {
+    int err = mkdir(args[1], 0700);
+    // Verifica se houve erro
+    if (err == 0) {
+      char aux[STRING_SIZE];
+      strcpy(aux, "257 \"");
+      strcat(aux, args[1]);
+      strcat(aux, "\" directory created.");
+      return_message = aux;
+    } else {
+      return_message = "550 Requested action not taken.";
+    }
+  } else {
+    return_message = "501 Syntax error in parameters or arguments.";
+  }
+
+  return return_message;
+
 }
