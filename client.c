@@ -30,6 +30,11 @@ int main (void) {
   while (strcmp(msg_read, "221 Service closing control connection.") != 0 && strcmp(msg_read,"421 Service not available, closing control connection.") != 0) {
     printf("%% ");
     fgets(msg_write, STRING_SIZE, stdin);
+    for (int i = 0; i < STRING_SIZE; i++) {
+      if (msg_write[i] == '\n') {
+        msg_write[i] = 0;
+      }
+    }
     write (s, msg_write, STRING_SIZE);
     read (s, msg_read, STRING_SIZE+1);
     printf("%s\n",msg_read);
