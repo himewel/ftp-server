@@ -397,3 +397,9 @@ char *func_rmd(ConnectionStatus *c, char *message) {
 
   return return_message;
 }
+char *func_noop(ConnectionStatus *c, char *message) {
+    char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+
+    return_message = "OK \n";
+    return return_message;
+}

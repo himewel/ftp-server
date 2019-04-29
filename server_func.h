@@ -30,3 +30,4 @@ char *func_list(ConnectionStatus *c, char *message);
 char *func_pwd(ConnectionStatus *c,char *message);
 char *func_mkd(ConnectionStatus *c,char *message);
 char *func_rmd(ConnectionStatus *c, char *message);
+char *func_noop(ConnectionStatus *c, char *message); 

@@ -78,6 +78,9 @@ int main (void) {
         case 11:
           return_message = func_rmd(c,msg_read);
           break;
+        case 12:
+          return_message = func_noop(c,msg_read);
+          break;
         default:
           return_message = "500 Syntax error, command unrecognized.";
           break;
