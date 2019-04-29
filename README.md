@@ -18,7 +18,7 @@ Dessa forma os executáveis gerados são ignorados pelo gitignore.
 
 Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, evitando um "421 Service not available, closing control connection." por parte do cliente.
 
-Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN, QUIT.
+Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN, QUIT, PWD, LIST, MKD, RMD.
 
 # FTP commands
 
@@ -34,7 +34,7 @@ Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN,
 | QUIT (7) | | RNTO |
 | | | ABOR |
 | | | DELE |
-| | | RMD |
+| | | RMD (11)|
 | | | MKD (10)|
 | | | PWD (9)|
 | | | LIST (8) |
