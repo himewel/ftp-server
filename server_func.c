@@ -106,12 +106,12 @@ char *func_user(ConnectionStatus *c, char *message) {
     if (c->logged_on != 1) {
       strcpy(c->user, args[1]);
       c->logged_on = 1;
-      return_message = "230 User logged in, proceed.";
+      return_message = "230 User logged in, proceed.\n";
     } else {
-      return_message = "503 You are already logged in.";
+      return_message = "503 You are already logged in.\n";
     }
   } else {
-    return_message ="501 Syntax error in parameters or arguments.";
+    return_message ="501 Syntax error in parameters or arguments.\n";
   }
 
   // Retorna novo estado da conexão
@@ -129,9 +129,9 @@ char *func_pass(ConnectionStatus *c, char *message) {
   // Como o comando não será implementado, apenas será verificada quantidade de
   // argumentos
   if (i == 2) {
-    return_message = "202 Command not implemented, superfluous at this site.";
+    return_message = "202 Command not implemented, superfluous at this site.\n";
   } else {
-    return_message = "501 Syntax error in parameters or arguments.";
+    return_message = "501 Syntax error in parameters or arguments.\n";
   }
 
   // Retorna novo estado da conexão
@@ -140,7 +140,7 @@ char *func_pass(ConnectionStatus *c, char *message) {
 
 char *func_acct(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-  return_message = "230 User logged in, proceed.";
+  return_message = "230 User logged in, proceed.\n";
   return return_message;
 }
 
@@ -174,14 +174,14 @@ char *func_cwd(ConnectionStatus *c, char *message) {
     DIR *dir = opendir(consult);
     if (dir != NULL) {
       strcpy(c->actual_path, consult);
-      return_message = "200 Working directory changed.";
+      return_message = "200 Working directory changed.\n";
       closedir(dir);
     }
     else {
-      return_message = "550 Requested action not taken.";
+      return_message = "550 Requested action not taken.\n";
     }
   } else {
-    return_message = "501 Syntax error in parameters or arguments.";
+    return_message = "501 Syntax error in parameters or arguments.\n";
   }
 
   return return_message;
@@ -199,11 +199,11 @@ char *func_cdup(ConnectionStatus *c, char *message) {
   DIR *dir = opendir(consult);
   if (dir != NULL) {
     strcpy(c->actual_path, consult);
-    return_message = "200 Command okay.";
+    return_message = "200 Command okay.\n";
     closedir(dir);
   }
   else {
-    return_message = "550 Requested action not taken.";
+    return_message = "550 Requested action not taken.\n";
   }
 
   return return_message;
@@ -211,7 +211,7 @@ char *func_cdup(ConnectionStatus *c, char *message) {
 
 char *func_smnt(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-  return_message = "502 Command not implemented.";
+  return_message = "502 Command not implemented.\n";
   return return_message;
 }
 
@@ -219,14 +219,14 @@ char *func_rein(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   free(c);
   c = initializeStatus();
-  return_message = "220 Service ready for new user.";
+  return_message = "220 Service ready for new user.\n";
   return return_message;
 }
 
 char *func_quit(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   c->connection_ok = 0;
-  return_message = "221 Service closing control connection.";
+  return_message = "221 Service closing control connection.\n";
   return return_message;
 }
 
@@ -275,7 +275,7 @@ char *func_list(ConnectionStatus *c,char *message) {
 
    if(strcmp(aux2,"dir:") == 0){
      pclose(arquivos);
-     return_message = "550 Path not found";
+     return_message = "550 Path not found\n";
      return return_message;
    }
 
@@ -301,7 +301,7 @@ char *func_list(ConnectionStatus *c,char *message) {
        aux2[i] = return_message[i];
      }
      if(strcmp(aux2,"stat:") == 0){
-       return_message = "550 File not found";
+       return_message = "550 File not found\n";
        return return_message;
      }
      else{
@@ -357,10 +357,10 @@ char *func_mkd(ConnectionStatus *c, char *message) {
       strcat(aux, "\" directory created.");
       return_message = aux;
     } else {
-      return_message = "550 Requested action not taken.";
+      return_message = "550 Requested action not taken.\n";
     }
   } else {
-    return_message = "501 Syntax error in parameters or arguments.";
+    return_message = "501 Syntax error in parameters or arguments.\n";
   }
 
   return return_message;
@@ -387,12 +387,12 @@ char *func_rmd(ConnectionStatus *c, char *message) {
     int err = rmdir(aux);
     // Verifica se houve erro
     if (err == 0) {
-      return_message = "250 Requested file action okay, completed.";
+      return_message = "250 Requested file action okay, completed.\n";
     } else {
-      return_message = "550 Requested action not taken.";
+      return_message = "550 Requested action not taken.\n";
     }
   } else {
-    return_message = "501 Syntax error in parameters or arguments.";
+    return_message = "501 Syntax error in parameters or arguments.\n";
   }
 
   return return_message;

@@ -30,7 +30,7 @@ int main (void) {
   while (1) {
     // Recebe conexão
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
-    write (client_s, "220 Service ready for new user.", STRING_SIZE);
+    write (client_s, "220 Service ready for new user.\n", STRING_SIZE);
 
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();
@@ -38,7 +38,9 @@ int main (void) {
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (client_s != -1 && c->connection_ok == 1) {
       // Decodifica mensagem e trata
-      read(client_s, msg_read, STRING_SIZE+1);
+      int buffer_len = read(client_s, msg_read, STRING_SIZE);
+      msg_read[buffer_len-1] = 0;
+      printf("%s\n", msg_read);
       int message = decode_message(msg_read);
       // Trata o comando recebido
       switch (message) {
@@ -82,7 +84,7 @@ int main (void) {
           return_message = func_noop(c,msg_read);
           break;
         default:
-          return_message = "500 Syntax error, command unrecognized.";
+          return_message = "500 Syntax error, command unrecognized.\n";
           break;
       }
       write(client_s, return_message, STRING_SIZE);
