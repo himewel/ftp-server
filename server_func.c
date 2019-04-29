@@ -266,13 +266,20 @@ char *func_list(ConnectionStatus *c,char *message) {
 }
 
 char *func_pwd(ConnectionStatus *c,char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Muda diretório raiz para o determinado na struct
   chdir(c->actual_path);
   // Pega nome real do diretório
   getcwd(c->actual_path, sizeof(c->actual_path));
   strcat(c->actual_path, "/");
+  // Formata string de resposta
+  char aux[STRING_SIZE];
+  strcpy(aux, "257 \"");
+  strcat(aux, c->actual_path);
+  strcat(aux, "\" path name.");
+  return_message = aux;
 
-  return c->actual_path;
+  return return_message;
 }
 
 char *func_mkd(ConnectionStatus *c, char *message) {
