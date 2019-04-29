@@ -42,6 +42,8 @@ int decode_message (char *command) {
     code = 8;
   } else if (strcmp(args[0],"pwd") == 0) {
     code = 9;
+  } else if (strcmp(args[0],"mkd") == 0) {
+    code = 10;
   } else {
     code = -1000;
   }
@@ -170,7 +172,7 @@ char *func_cwd(ConnectionStatus *c, char *message) {
     DIR *dir = opendir(consult);
     if (dir != NULL) {
       strcpy(c->actual_path, consult);
-      return_message = "250 Requested file action okay, completed.";
+      return_message = "200 Working directory changed.";
       closedir(dir);
     }
     else {
@@ -271,4 +273,31 @@ char *func_pwd(ConnectionStatus *c,char *message) {
   strcat(c->actual_path, "/");
 
   return c->actual_path;
+}
+
+char *func_mkd(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  // Recebe mensagem decodificada em espaços, alocada itens do vetor
+  char **args = split_words(message);
+  // Número de palavras dentro da mensagem
+  int i = number_words(args);
+
+  if (i == 2) {
+    int err = mkdir(args[1], 0700);
+    // Verifica se houve erro
+    if (err == 0) {
+      char aux[STRING_SIZE];
+      strcpy(aux, "257 \"");
+      strcat(aux, args[1]);
+      strcat(aux, "\" directory created.");
+      return_message = aux;
+    } else {
+      return_message = "550 Requested action not taken.";
+    }
+  } else {
+    return_message = "501 Syntax error in parameters or arguments.";
+  }
+
+  return return_message;
+
 }
