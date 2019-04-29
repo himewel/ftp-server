@@ -2,8 +2,8 @@
 
 int main (void) {
   // Buffers de leitura e escrita
-  char msg_write[TAM_BUFFER];
-  char msg_read[TAM_BUFFER];
+  char msg_write[STRING_SIZE];
+  char msg_read[STRING_SIZE];
 
   // Reserva socket e configura conexão
   int s;
@@ -20,7 +20,7 @@ int main (void) {
   // Solicita conexão com o servidor configurado
   int connect_succefull = connect(s, (struct sockaddr *)&dest, sizeof(dest));
   if (connect_succefull == 0) {
-    read (s, msg_read, TAM_BUFFER+1);
+    read (s, msg_read, STRING_SIZE+1);
   } else {
     strcpy(msg_read,"421 Service not available, closing control connection.");
   }
@@ -29,9 +29,9 @@ int main (void) {
   // Loop principal
   while (strcmp(msg_read, "221 Service closing control connection.") != 0 && strcmp(msg_read,"421 Service not available, closing control connection.") != 0) {
     printf("%% ");
-    gets(msg_write);
-    write (s, msg_write, TAM_BUFFER);
-    read (s, msg_read, TAM_BUFFER+1);
+    fgets(msg_write, STRING_SIZE, stdin);
+    write (s, msg_write, STRING_SIZE);
+    read (s, msg_read, STRING_SIZE+1);
     printf("%s\n",msg_read);
   }
 

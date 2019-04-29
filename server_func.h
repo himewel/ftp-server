@@ -1,10 +1,4 @@
 #include "common.h"
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
-
-#define MAX_ARGUMENTS 5
-#define STRING_SIZE 500
 
 struct connection_status {
   char user[STRING_SIZE];

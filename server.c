@@ -4,7 +4,7 @@ int main (void) {
   int s, client_s, addr_len;
   int flag_connection;
   char *return_message;
-  char msg_read[TAM_BUFFER];
+  char msg_read[STRING_SIZE];
 
   // Configuração do socket para receber solicitações de qualquer endereço
   struct sockaddr_in self, client;
@@ -30,7 +30,7 @@ int main (void) {
   while (1) {
     // Recebe conexão
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
-    write (client_s, "220 Service ready for new user.", TAM_BUFFER);
+    write (client_s, "220 Service ready for new user.", STRING_SIZE);
 
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();
@@ -38,7 +38,7 @@ int main (void) {
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (client_s != -1 && c->connection_ok == 1) {
       // Decodifica mensagem e trata
-      read(client_s, msg_read, TAM_BUFFER+1);
+      read(client_s, msg_read, STRING_SIZE+1);
       int message = decode_message(msg_read);
       // Trata o comando recebido
       switch (message) {
@@ -82,7 +82,7 @@ int main (void) {
           return_message = "500 Syntax error, command unrecognized.";
           break;
       }
-      write(client_s, return_message, TAM_BUFFER);
+      write(client_s, return_message, STRING_SIZE);
     }
     free(c);
     client_s = -1;
