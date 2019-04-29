@@ -234,21 +234,25 @@ char *func_quit(ConnectionStatus *c, char *message) {
 
 char *func_list(ConnectionStatus *c,char *message) {
   chdir(c->actual_path);
-  char aux[210] = "dir ";
+  char aux[STRING_SIZE] = "dir ";
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   char *path = (char*) malloc(STRING_SIZE*sizeof(char));
+  char *aux2 = (char*) malloc(STRING_SIZE*sizeof(char));
   FILE *arquivos;
   char ch;
   int i,j = 0;
 
   //retirando os 4 primeiros digitos (pois eles contem list )
-  for (int i = 4;message[i]!= NULL;i++) {
+  for (int i = 4;message[i]!= '\0';i++) {
+    // nao queremos o primeiro espaço
+    if(i != 4){
     path[j] = message[i];
     j++;
+    }
   }
 
   // cria o sintax do comando dir
-  // caso nao setado o nome do diretorio vai olhar no diretorio que se encontra o arquivo
+  // caso o cliente tenha setado uma pasta especica
   strcat(aux,path);
 
   // faz com que os erros sejam escritos na menssagem caso ocorra
@@ -257,11 +261,54 @@ char *func_list(ConnectionStatus *c,char *message) {
   //chama o comando no sistema e salva em um arquivo
   arquivos =  popen(aux,"r");
 
-
   //converte o arquivo para string
   for(i =0;((ch = fgetc(arquivos)) != EOF);i++){
-    return_message[i] = ch;
-  }
+     return_message[i] = ch;
+   }
+
+   // verificando se nao deu erro de diretorio nao encontrado
+   // pegando as 4 primeiras letras da menssagem pois se deu erro no dir vai exibir dir:
+
+   for (int i = 0;i<4;i++) {
+     aux2[i] = return_message[i];
+   }
+
+   if(strcmp(aux2,"dir:") == 0){
+     pclose(arquivos);
+     return_message = "550 Path not found";
+     return return_message;
+   }
+
+   // a menssagem de retorno possui um \n no final entao para podermos comparalas
+   strcat(path,"\n");
+   // tambem devemos checar a possibilidade de o cliente estar busando informacoes sobre um arquivo especifico
+   if(strcmp(return_message,path) == 0){
+     // caso ele esteja vamos utilizar o comando stat para retornar as informacoes
+     free(aux2);
+     aux2 = (char*) malloc(STRING_SIZE*sizeof(char));
+     strcat(aux2,"stat ");
+     strcat(aux2,c->actual_path);
+     strcat(aux2,path);
+
+     arquivos =  popen(aux2,"r");
+     //converte o arquivo para string
+     for(i =0;((ch = fgetc(arquivos)) != EOF);i++){
+        return_message[i] = ch;
+      }
+     // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
+     // deveremos retornar uma menssagem de erro
+     for (int i = 0;i<5;i++) {
+       aux2[i] = return_message[i];
+     }
+     if(strcmp(aux2,"stat:") == 0){
+       return_message = "550 File not found";
+       return return_message;
+     }
+     else{
+       pclose(arquivos);
+       return return_message;
+     }
+   }
 
   pclose(arquivos);
   return return_message;
