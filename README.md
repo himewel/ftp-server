@@ -34,10 +34,10 @@ Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN,
 | QUIT (7) | | RNTO |
 | | | ABOR |
 | | | DELE |
-| | | RMV |
-| | | MKD |
-| | | PWD |
-| | | LIST |
+| | | RMD |
+| | | MKD (10)|
+| | | PWD (9)|
+| | | LIST (8) |
 | | | NLST |
 | | | SITE |
 | | | SYST |
