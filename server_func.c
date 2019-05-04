@@ -85,9 +85,9 @@ int number_words(char **m) {
   return i;
 }
 
-char **split_words(char *m) {
+char **split_words(char *m, char *limit) {
   // Separa palavras em vetor
-  char *ptr = strtok(m, " ");
+  char *ptr = strtok(m, limit);
 
   char **res = (char**) malloc(MAX_ARGUMENTS*sizeof(char*));
   for (int i = 0; i < MAX_ARGUMENTS; i++) {

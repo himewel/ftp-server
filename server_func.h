@@ -27,7 +27,7 @@ ConnectionStatus *initializeStatus();
 int decode_message (char *command);
 void strlwr (char *s);
 int number_words(char **m);
-char **split_words(char *m);
+char **split_words(char *m, char *limit);
 
 /* CONTROLE DE ACESSO */
 char *func_user(ConnectionStatus *c, char *message);
