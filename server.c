@@ -3,8 +3,7 @@
 int main (void) {
   int s, client_s, addr_len;
   int flag_connection;
-  char *return_message;
-  char msg_read[STRING_SIZE];
+  char msg[STRING_SIZE];
 
   // Configuração do socket para receber solicitações de qualquer endereço
   struct sockaddr_in self, client;
@@ -30,64 +29,70 @@ int main (void) {
   while (1) {
     // Recebe conexão
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
-    write (client_s, "220 Service ready for new user.\n", STRING_SIZE);
+    strcpy(msg, "220 Service ready for new user.\n");
+    write (client_s, msg, strlen(msg)+1);
 
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();
 
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (client_s != -1 && c->connection_ok == 1) {
+      printf("%s",msg);
+      printf("--------------------------------------------------------------------------------\n");
+      bzero(msg, STRING_SIZE);
       // Decodifica mensagem e trata
-      int buffer_len = read(client_s, msg_read, STRING_SIZE);
-      msg_read[buffer_len-1] = 0;
-      printf("%s\n", msg_read);
-      int message = decode_message(msg_read);
+      read(client_s, msg, sizeof(msg));
+      printf("%s", msg);
+      int message = decode_message(msg);
       // Trata o comando recebido
       switch (message) {
         case 0:
-          return_message = func_user(c, msg_read);
+          strcpy(msg,func_user(c, msg));
           break;
         case 1:
-          return_message = func_pass(c,msg_read);
+          strcpy(msg,func_pass(c,msg));
           break;
         case 2:
-          return_message = func_acct(c,msg_read);
+          strcpy(msg,func_acct(c,msg));
           break;
         case 3:
-          return_message = func_cwd(c,msg_read);
+          strcpy(msg,func_cwd(c,msg));
           break;
         case 4:
-          return_message = func_cdup(c,msg_read);
+          strcpy(msg,func_cdup(c,msg));
           break;
         case 5:
-          return_message = func_smnt(c,msg_read);
+          strcpy(msg,func_smnt(c,msg));
           break;
         case 6:
-          return_message = func_rein(c,msg_read);
+          strcpy(msg,func_rein(c,msg));
           break;
         case 7:
-          return_message = func_quit(c,msg_read);
+          strcpy(msg,func_quit(c,msg));
           break;
         case 8:
-          return_message = func_list(c,msg_read);
+          strcpy(msg,func_list(c,msg));
           break;
         case 9:
-          return_message = func_pwd(c,msg_read);
+          strcpy(msg,func_pwd(c,msg));
           break;
         case 10:
-          return_message = func_mkd(c,msg_read);
+          strcpy(msg,func_mkd(c,msg));
           break;
         case 11:
-          return_message = func_rmd(c,msg_read);
+          strcpy(msg,func_rmd(c,msg));
           break;
         case 12:
-          return_message = func_noop(c,msg_read);
+          strcpy(msg,func_noop(c,msg));
+          break;
+        case 13:
+          strcpy(msg,func_syst(c,msg));
           break;
         default:
-          return_message = "500 Syntax error, command unrecognized.\n";
+          strcpy(msg,"202 Command not implemented, superfluous at this site.\n");
           break;
       }
-      write(client_s, return_message, STRING_SIZE);
+      write(client_s, msg, strlen(msg) + 1);
     }
     free(c);
     client_s = -1;

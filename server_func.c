@@ -18,9 +18,8 @@ int decode_message (char *command) {
   char aux[STRING_SIZE];
   strcpy(aux, command);
   char **args = split_words(aux);
-
   strlwr(args[0]);
-
+  args[0][4] = 0;
   int code;
   if (strcmp(args[0],"user") == 0) {
     code = 0;
@@ -28,8 +27,6 @@ int decode_message (char *command) {
     code = 1;
   } else if (strcmp(args[0],"acct") == 0) {
     code = 2;
-  } else if (strcmp(args[0],"cwd") == 0) {
-    code = 3;
   } else if (strcmp(args[0],"cdup") == 0) {
     code = 4;
   } else if (strcmp(args[0],"smnt") == 0) {
@@ -40,15 +37,29 @@ int decode_message (char *command) {
     code = 7;
   } else if (strcmp(args[0],"list") == 0) {
     code = 8;
-  } else if (strcmp(args[0],"pwd") == 0) {
-    code = 9;
-  } else if (strcmp(args[0],"mkd") == 0) {
-    code = 10;
-  } else if (strcmp(args[0],"rmd") == 0) {
-    code = 11;
+  } else if (strcmp(args[0],"syst") == 0) {
+    code = 13;
   } else {
     code = -1000;
   }
+
+  if (code == -1000) {
+    args[0][3] = 0;
+    if (strcmp(args[0],"cwd") == 0) {
+      code = 3;
+    } else if (strcmp(args[0],"pwd") == 0) {
+      code = 9;
+    } else if (strcmp(args[0],"mkd") == 0) {
+      code = 10;
+    } else if (strcmp(args[0],"rmd") == 0) {
+      code = 11;
+    }
+  }
+
+  for (int i = 0; i < MAX_ARGUMENTS; i++) {
+    free(args[i]);
+  }
+
   return code;
 }
 
@@ -94,47 +105,14 @@ char **split_words(char *m) {
 /* CONTROLE DE ACESSO */
 
 char *func_user(ConnectionStatus *c, char *message) {
-  // Recebe mensagem decodificada em espaços, alocada itens do vetor
-  char **args = split_words(message);
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-
-  // Número de palavras dentro da mensagem
-  int i = number_words(args);
-
-  // Controle de sintaxe através do número de argumentos
-  if (i == 2) {
-    if (c->logged_on != 1) {
-      strcpy(c->user, args[1]);
-      c->logged_on = 1;
-      return_message = "230 User logged in, proceed.\n";
-    } else {
-      return_message = "503 You are already logged in.\n";
-    }
-  } else {
-    return_message ="501 Syntax error in parameters or arguments.\n";
-  }
-
-  // Retorna novo estado da conexão
+  return_message = "331 User name okay, need password.\n";
   return return_message;
 }
 
 char *func_pass(ConnectionStatus *c, char *message) {
-  // Recebe mensagem decodificada em espaços, alocada itens do vetor
-  char **args = split_words(message);
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-
-  // Número de palavras dentro da mensagem
-  int i = number_words(args);
-
-  // Como o comando não será implementado, apenas será verificada quantidade de
-  // argumentos
-  if (i == 2) {
-    return_message = "202 Command not implemented, superfluous at this site.\n";
-  } else {
-    return_message = "501 Syntax error in parameters or arguments.\n";
-  }
-
-  // Retorna novo estado da conexão
+  return_message = "230 User logged in, proceed.\n";
   return return_message;
 }
 
@@ -325,7 +303,7 @@ char *func_pwd(ConnectionStatus *c,char *message) {
   char aux[STRING_SIZE];
   strcpy(aux, "257 \"");
   strcat(aux, c->actual_path);
-  strcat(aux, "\" path name.");
+  strcat(aux, "\" path name.\n");
   return_message = aux;
 
   return return_message;
@@ -335,32 +313,26 @@ char *func_mkd(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message);
-  // Número de palavras dentro da mensagem
-  int i = number_words(args);
 
-  if (i == 2) {
-    char aux[STRING_SIZE];
-    if (args[1][0] == '/') {
-      strcpy(aux, args[1]);
-    } else {
-      // Concatena destino com caminho atual
-      strcpy(aux, c->actual_path);
-      strcat(aux, args[1]);
-    }
-
-    int err = mkdir(aux, 0775);
-    // Verifica se houve erro
-    if (err == 0) {
-      char aux[STRING_SIZE];
-      strcpy(aux, "257 \"");
-      strcat(aux, args[1]);
-      strcat(aux, "\" directory created.");
-      return_message = aux;
-    } else {
-      return_message = "550 Requested action not taken.\n";
-    }
+  char aux[STRING_SIZE];
+  if (args[1][0] == '/') {
+    strcpy(aux, args[1]);
   } else {
-    return_message = "501 Syntax error in parameters or arguments.\n";
+    // Concatena destino com caminho atual
+    strcpy(aux, c->actual_path);
+    strcat(aux, args[1]);
+  }
+
+  int err = mkdir(aux, 0775);
+  // Verifica se houve erro
+  if (err == 0) {
+    char aux[STRING_SIZE];
+    strcpy(aux, "257 \"");
+    strcat(aux, args[1]);
+    strcat(aux, "\" directory created.");
+    return_message = aux;
+  } else {
+    return_message = "550 Requested action not taken.\n";
   }
 
   return return_message;
@@ -397,9 +369,15 @@ char *func_rmd(ConnectionStatus *c, char *message) {
 
   return return_message;
 }
+
 char *func_noop(ConnectionStatus *c, char *message) {
     char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-
     return_message = "OK \n";
     return return_message;
+}
+
+char *func_syst(ConnectionStatus *c, char *message) {
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  return_message = "215 UNIX system type.\n";
+  return return_message;
 }
