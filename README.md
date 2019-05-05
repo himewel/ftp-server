@@ -8,7 +8,7 @@ Especificação do protocolo segundo a RFC 959: https://www.ietf.org/rfc/rfc959.
 
 Documentação das principais bibliotecas: [<uninstd.h>](http://pubs.opengroup.org/onlinepubs/007908799/xsh/unistd.h.html), [<sys/socket.h>](https://pubs.opengroup.org/onlinepubs/7908799/xns/syssocket.h.html).
 
-# Instalação e execução
+## Instalação e execução
 
 Dê as permissões necessárias para execução do compile.sh e o execute.
 
@@ -20,15 +20,17 @@ Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN,
 
 Instruções adaptadas para o cliente FTP padrão: USER, PASS, CWD, CDUP, PWD, LIST, SYST, PORT.
 
-# MINIMUM IMPLEMENTATION
+## Minimum Implementation
+
+
 
 In order to make FTP workable without needless error messages, the
 following minimum implementation is required for all servers:
 
-   TYPE - ASCII Non-print
-   MODE - Stream
-   STRUCTURE - File, Record
-   COMMANDS - USER, QUIT, PORT,
+        TYPE - ASCII Non-print
+        MODE - Stream
+        STRUCTURE - File, Record
+        COMMANDS - USER, QUIT, PORT,
               TYPE, MODE, STRU,
                 for the default values
               RETR, STOR,
@@ -36,11 +38,11 @@ following minimum implementation is required for all servers:
 
 The default values for transfer parameters are:
 
-   TYPE - ASCII Non-print
-   MODE - Stream
-   STRU - File
+       TYPE - ASCII Non-print
+       MODE - Stream
+       STRU - File
 
-# FTP commands
+## FTP commands
 
 | Access control commands | Transfer parameter commands | Ftp service commands |
 | ----------------------- | --------------------------- | -------------------- |
