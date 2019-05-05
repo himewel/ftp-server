@@ -5,19 +5,59 @@ ConnectionStatus *initializeStatus() {
   // Configura diretório atual
   getcwd(c->actual_path, sizeof(c->actual_path));
   strcat(c->actual_path, "/");
-  strcpy(c->user, "");
 
-  c->logged_on = 0;
   c->connection_ok = 1;
+  c->data_session = -1;
   return c;
 };
+
+/* ENVIO DE DADOS */
+
+void send_data(ConnectionStatus *c, char *mensagem) {
+  int client_s;
+  int w;
+  char *mes;
+  // Informa inísio da transferência
+  mes = "125 Data connection already open; transfer starting.\n";
+  printf("%s", mes);
+  write(c->control_session, mes, strlen(mes));
+  // Conecta com cliente
+  struct sockaddr_in dest;
+  bzero(&dest, sizeof(dest));
+  dest.sin_family = AF_INET;
+  dest.sin_port = htons(c->data_session_port);
+  dest.sin_addr.s_addr = INADDR_ANY;
+  client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+  if (client_s == -1) {
+    int erro = errno;
+    printf("%i\n", erro);
+    mes = "425 Can't open data connection.\n";
+    write(c->data_session, mes, strlen(mes));
+    return;
+  }
+  // Envia dado
+  w = write(c->data_session, mensagem, strlen(mensagem));
+  printf("%s", mensagem);
+  if (w == -1) {
+    int erro = errno;
+    printf("%i\n", erro);
+    mes = "425 Can't open data connection.\n";
+    write(c->data_session, mes, strlen(mes));
+    return;
+  }
+  // Fecha conexão
+  mes = "226 Closing data connection.\n";
+  write(c->data_session, mes, strlen(mes));
+  close(client_s);
+  return;
+}
 
 /* DECODIFICAÇÃO DO COMANDO */
 
 int decode_message (char *command) {
   char aux[STRING_SIZE];
   strcpy(aux, command);
-  char **args = split_words(aux);
+  char **args = split_words(aux, " ");
   strlwr(args[0]);
   args[0][4] = 0;
   int code;
@@ -39,6 +79,8 @@ int decode_message (char *command) {
     code = 8;
   } else if (strcmp(args[0],"syst") == 0) {
     code = 13;
+  } else if (strcmp(args[0],"port") == 0) {
+    code = 14;
   } else {
     code = -1000;
   }
@@ -89,17 +131,48 @@ char **split_words(char *m, char *limit) {
   // Separa palavras em vetor
   char *ptr = strtok(m, limit);
 
-  char **res = (char**) malloc(MAX_ARGUMENTS*sizeof(char*));
-  for (int i = 0; i < MAX_ARGUMENTS; i++) {
+  char **res = (char**) malloc(10*sizeof(char*));
+  for (int i = 0; i < 10; i++) {
     res[i] = (char *) malloc(STRING_SIZE*sizeof(char));
     res[i][0] = 0;
   }
 
-  for (int i = 0; ptr != NULL && i < MAX_ARGUMENTS; i++) {
+  for (int i = 0; ptr != NULL && i < 10; i++) {
     strcpy(res[i], ptr);
-    ptr = strtok(NULL, " ");
+    ptr = strtok(NULL, limit);
   }
   return res;
+}
+
+int hex_to_dec(char *hex) {
+  int val;
+  int decimal = 0;
+  int pow = 1;
+  printf("%s\n", hex);
+
+  for (int i = 3; i >= 0; i--) {
+    if (hex[i] >= '0' && hex[i] <= '9') {
+        val = hex[i] - 48;
+    }
+    if (hex[i] >= 'A' && hex[i] <= 'F') {
+        val = hex[i] - 55;
+    }
+    decimal += val * pow;
+    pow *= 16;
+  }
+  return decimal;
+}
+
+char *dec_to_hex(int dec) {
+  char HEXVALUE[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+  char *hex = (char*) malloc(2*sizeof(char));
+  int index, rem;
+
+  hex[1] = HEXVALUE[dec % 16];
+  dec /= 16;
+  hex[0] = HEXVALUE[dec % 16];
+
+  return hex;
 }
 
 /* CONTROLE DE ACESSO */
@@ -125,7 +198,7 @@ char *func_acct(ConnectionStatus *c, char *message) {
 char *func_cwd(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
-  char **args = split_words(message);
+  char **args = split_words(message, " ");
   // Número de palavras dentro da mensagem
   int i = number_words(args);
 
@@ -212,85 +285,62 @@ char *func_quit(ConnectionStatus *c, char *message) {
 
 char *func_list(ConnectionStatus *c,char *message) {
   chdir(c->actual_path);
-  char aux[STRING_SIZE] = "dir ";
+  char shell_command[STRING_SIZE] = "dir ";
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-  char *path = (char*) malloc(STRING_SIZE*sizeof(char));
-  char *aux2 = (char*) malloc(STRING_SIZE*sizeof(char));
+  char **args = split_words(message, " ");
+  char *path = args[1];
   FILE *arquivos;
   char ch;
-  int i,j = 0;
 
-  //retirando os 4 primeiros digitos (pois eles contem list )
-  for (int i = 4;message[i]!= '\0';i++) {
-    // nao queremos o primeiro espaço
-    if(i != 4){
-    path[j] = message[i];
-    j++;
+  // cria o sintax do comando dir
+  // caso o cliente tenha setado uma pasta especifica
+  strcat(shell_command, path);
+
+  // faz com que os erros sejam escritos na menssagem caso ocorra
+  strcat(shell_command," 2>&1");
+
+  //chama o comando no sistema e salva em um arquivo
+  arquivos = popen(shell_command, "r");
+
+  //converte o arquivo para string
+  for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++){
+    return_message[i] = ch;
+  }
+  // verificando se nao deu erro de diretorio nao encontrado
+  // pegando as 4 primeiras letras da menssagem pois se deu erro no dir vai exibir dir:
+  if (strncmp(return_message, "dir:", 4) == 0){
+    pclose(arquivos);
+    return_message = "550 Path not found\n";
+    return return_message;
+  }
+
+  // a menssagem de retorno possui um \n no final entao para podermos comparalas
+  strcat(path,"\n");
+  // tambem devemos checar a possibilidade de o cliente estar busando informacoes sobre um arquivo especifico
+  if (strcmp(return_message, path) == 0){
+    // caso ele esteja vamos utilizar o comando stat para retornar as informacoes
+    strcpy(shell_command, "stat ");
+    strcat(shell_command, c->actual_path);
+    strcat(shell_command, path);
+
+    arquivos = popen(shell_command,"r");
+    //converte o arquivo para string
+    for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++){
+      return_message[i] = ch;
+    }
+    // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
+    // deveremos retornar uma menssagem de erro
+    if (strncmp(return_message, "stat:", 5) == 0){
+      return_message = "550 File not found\n";
+      return return_message;
     }
   }
 
-  // cria o sintax do comando dir
-  // caso o cliente tenha setado uma pasta especica
-  strcat(aux,path);
-
-  // faz com que os erros sejam escritos na menssagem caso ocorra
-  strcat(aux," 2>&1");
-
-  //chama o comando no sistema e salva em um arquivo
-  arquivos =  popen(aux,"r");
-
-  //converte o arquivo para string
-  for(i =0;((ch = fgetc(arquivos)) != EOF);i++){
-     return_message[i] = ch;
-   }
-
-   // verificando se nao deu erro de diretorio nao encontrado
-   // pegando as 4 primeiras letras da menssagem pois se deu erro no dir vai exibir dir:
-
-   for (int i = 0;i<4;i++) {
-     aux2[i] = return_message[i];
-   }
-
-   if(strcmp(aux2,"dir:") == 0){
-     pclose(arquivos);
-     return_message = "550 Path not found\n";
-     return return_message;
-   }
-
-   // a menssagem de retorno possui um \n no final entao para podermos comparalas
-   strcat(path,"\n");
-   // tambem devemos checar a possibilidade de o cliente estar busando informacoes sobre um arquivo especifico
-   if(strcmp(return_message,path) == 0){
-     // caso ele esteja vamos utilizar o comando stat para retornar as informacoes
-     free(aux2);
-     aux2 = (char*) malloc(STRING_SIZE*sizeof(char));
-     strcat(aux2,"stat ");
-     strcat(aux2,c->actual_path);
-     strcat(aux2,path);
-
-     arquivos =  popen(aux2,"r");
-     //converte o arquivo para string
-     for(i =0;((ch = fgetc(arquivos)) != EOF);i++){
-        return_message[i] = ch;
-      }
-     // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
-     // deveremos retornar uma menssagem de erro
-     for (int i = 0;i<5;i++) {
-       aux2[i] = return_message[i];
-     }
-     if(strcmp(aux2,"stat:") == 0){
-       return_message = "550 File not found\n";
-       return return_message;
-     }
-     else{
-       pclose(arquivos);
-       return return_message;
-     }
-   }
+  send_data(c, return_message);
 
   pclose(arquivos);
-  return return_message;
-}
+  return "226 Closing data connection.\n";
+  }
 
 char *func_pwd(ConnectionStatus *c,char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
@@ -312,7 +362,7 @@ char *func_pwd(ConnectionStatus *c,char *message) {
 char *func_mkd(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
-  char **args = split_words(message);
+  char **args = split_words(message, " ");
 
   char aux[STRING_SIZE];
   if (args[1][0] == '/') {
@@ -342,7 +392,7 @@ char *func_mkd(ConnectionStatus *c, char *message) {
 char *func_rmd(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
-  char **args = split_words(message);
+  char **args = split_words(message, " ");
   // Número de palavras dentro da mensagem
   int i = number_words(args);
 
@@ -380,4 +430,41 @@ char *func_syst(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   return_message = "215 UNIX system type.\n";
   return return_message;
+}
+
+char *func_port(ConnectionStatus *c, char *message) {
+  // Decodificação das strings
+  char **words = split_words(message, " ");
+  char **args = split_words(words[1], ",");
+  char *ini = dec_to_hex(strtol(args[4], NULL, 10));
+  char *fim = dec_to_hex(strtol(args[5], NULL, 10));
+  char *concat = (char*) malloc(4*sizeof(char));
+  concat[0] = ini[0];
+  concat[1] = ini[1];
+  concat[2] = fim[0];
+  concat[3] = fim[1];
+  int porta = hex_to_dec(concat);
+
+  // Configuração do socket
+  int client_s, s;
+  struct sockaddr_in dest;
+  bzero(&dest, sizeof(dest));
+  dest.sin_family = AF_INET;
+  dest.sin_port = htons(c->data_session_port);
+  dest.sin_addr.s_addr = INADDR_ANY;
+
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
+  s = socket(AF_INET, SOCK_STREAM, 0);
+
+  if (s == -1) {
+    int erro = errno;
+    printf("Errno: %i\n", erro);
+    return "421 Service not available, closing control connection.\n";
+  }
+
+  // Atualiza status da conexão
+  c->data_session_port = porta;
+  c->data_session = s;
+
+  return "200 Command okay.\n";
 }

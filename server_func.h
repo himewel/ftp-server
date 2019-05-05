@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -13,10 +14,11 @@
 #define STRING_SIZE 200
 
 struct connection_status {
-  char user[STRING_SIZE];
   char actual_path[STRING_SIZE];
-  int logged_on;
   int connection_ok;
+  int data_session;
+  int data_session_port;
+  int control_session;
 };
 
 typedef struct connection_status ConnectionStatus;
@@ -28,6 +30,11 @@ int decode_message (char *command);
 void strlwr (char *s);
 int number_words(char **m);
 char **split_words(char *m, char *limit);
+int hex_to_dec(char *hex);
+char *dec_to_hex(int dec);
+
+/* TRANSFERÊNCIA DE DADOS */
+void send_data(ConnectionStatus *c, char *mensagem);
 
 /* CONTROLE DE ACESSO */
 char *func_user(ConnectionStatus *c, char *message);
@@ -44,3 +51,4 @@ char *func_mkd(ConnectionStatus *c,char *message);
 char *func_rmd(ConnectionStatus *c, char *message);
 char *func_noop(ConnectionStatus *c, char *message);
 char *func_syst(ConnectionStatus *c, char *message);
+char *func_port(ConnectionStatus *c, char *message);
