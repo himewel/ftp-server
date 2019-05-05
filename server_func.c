@@ -143,6 +143,12 @@ char **split_words(char *m, char *limit) {
   }
 
   for (int i = 0; ptr != NULL && i < 10; i++) {
+    if (ptr[strlen(ptr) - 1] == '\n') {
+      ptr[strlen(ptr) - 1] = 0;
+    }
+    if (ptr[strlen(ptr) - 1] == '\r') {
+      ptr[strlen(ptr) - 1] = 0;
+    }
     strcpy(res[i], ptr);
     ptr = strtok(NULL, limit);
   }
@@ -204,23 +210,21 @@ char *func_cwd(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message, " ");
-  char **aux = split_words(args[1], "\n");
 
   // Verifica a existência do diretório, caso positivo armazena na struct de
   // estado
   // Utiliza uma variável auxiliar para consulta da existencia do diretório
   char consult[STRING_SIZE] = "";
-  if (aux[0][0] == '/') {
+  if (args[1][0] == '/') {
     // Vai para raiz do servidor
-    aux[0][strlen(aux[0]) - 1] = '/';
-    strcpy(consult, aux[0]);
+    args[1][strlen(args[1]) - 1] = '/';
+    strcpy(consult, args[1]);
   } else {
     // Concatena destino com caminho atual
     strcpy(consult, c->actual_path);
-    aux[0][strlen(aux[0]) - 1] = '/';
-    strcat(consult, aux[0]);
+    args[1][strlen(args[1]) - 1] = '/';
+    strcat(consult, args[1]);
   }
-  printf("%s\n", consult);
 
   // Consulta existência do diretório
   DIR *dir = opendir(consult);
@@ -235,7 +239,6 @@ char *func_cwd(ConnectionStatus *c, char *message) {
 
   // libera variáveis
   for (int i = 0; i < 10; i++) {
-    free(aux[i]);
     free(args[i]);
   }
 
@@ -302,6 +305,7 @@ char *func_list(ConnectionStatus *c,char *message) {
 
   // faz com que os erros sejam escritos na menssagem caso ocorra
   strcat(shell_command," 2>&1");
+  printf("%s \n", shell_command);
 
   //chama o comando no sistema e salva em um arquivo
   arquivos = popen(shell_command, "r");
@@ -368,29 +372,34 @@ char *func_mkd(ConnectionStatus *c, char *message) {
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message, " ");
 
-  char aux[STRING_SIZE];
+  char shell_command[STRING_SIZE];
   if (args[1][0] == '/') {
-    strcpy(aux, args[1]);
+    strcpy(shell_command, args[1]);
   } else {
     // Concatena destino com caminho atual
-    strcpy(aux, c->actual_path);
-    strcat(aux, args[1]);
+    strcpy(shell_command, c->actual_path);
+    strcat(shell_command, args[1]);
   }
 
-  int err = mkdir(aux, 0775);
+  printf("%s\n", shell_command)
+
+  int err = mkdir(shell_command, 0775);
   // Verifica se houve erro
   if (err == 0) {
     char aux[STRING_SIZE];
     strcpy(aux, "257 \"");
     strcat(aux, args[1]);
-    strcat(aux, "\" directory created.");
+    strcat(aux, "\" directory created.\n");
     return_message = aux;
   } else {
     return_message = "550 Requested action not taken.\n";
   }
 
-  return return_message;
+  for (int i = 0; i < 10; i++) {
+    free(args[i]);
+  }
 
+  return return_message;
 }
 
 char *func_rmd(ConnectionStatus *c, char *message) {
