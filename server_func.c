@@ -17,10 +17,7 @@ void send_data(ConnectionStatus *c, char *mensagem) {
   int client_s;
   int w;
   char *mes;
-  // Informa inísio da transferência
-  mes = "125 Data connection already open; transfer starting.\n";
-  printf("%s", mes);
-  write(c->control_session, mes, strlen(mes));
+
   // Conecta com cliente
   struct sockaddr_in dest;
   bzero(&dest, sizeof(dest));
@@ -32,9 +29,15 @@ void send_data(ConnectionStatus *c, char *mensagem) {
     int erro = errno;
     printf("%i\n", erro);
     mes = "425 Can't open data connection.\n";
-    write(c->data_session, mes, strlen(mes));
+    write(c->control_session, mes, strlen(mes));
     return;
   }
+
+  // Informa início da transferência
+  mes = "125-Data connection already open; transfer starting.\n";
+  printf("%s", mes);
+  write(c->control_session, mes, strlen(mes));
+
   // Envia dado
   w = write(c->data_session, mensagem, strlen(mensagem));
   printf("%s", mensagem);
@@ -42,13 +45,15 @@ void send_data(ConnectionStatus *c, char *mensagem) {
     int erro = errno;
     printf("%i\n", erro);
     mes = "425 Can't open data connection.\n";
-    write(c->data_session, mes, strlen(mes));
+    write(c->control_session, mes, strlen(mes));
     return;
   }
   // Fecha conexão
-  mes = "226 Closing data connection.\n";
-  write(c->data_session, mes, strlen(mes));
+  mes = "250 Closing data connection.\n";
+  write(c->control_session, mes, strlen(mes));
+  shutdown(c->data_session, SHUT_RDWR);
   close(client_s);
+  c->data_session = -1;
   return;
 }
 
@@ -339,7 +344,7 @@ char *func_list(ConnectionStatus *c,char *message) {
   send_data(c, return_message);
 
   pclose(arquivos);
-  return "226 Closing data connection.\n";
+  return "";
   }
 
 char *func_pwd(ConnectionStatus *c,char *message) {
