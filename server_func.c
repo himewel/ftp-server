@@ -381,7 +381,7 @@ char *func_mkd(ConnectionStatus *c, char *message) {
     strcat(shell_command, args[1]);
   }
 
-  printf("%s\n", shell_command)
+  printf("%s\n", shell_command);
 
   int err = mkdir(shell_command, 0775);
   // Verifica se houve erro
@@ -407,29 +407,21 @@ char *func_rmd(ConnectionStatus *c, char *message) {
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message, " ");
   // Número de palavras dentro da mensagem
-  int i = number_words(args);
-
-  if (i == 2) {
-    char aux[STRING_SIZE];
-    if (args[1][0] == '/') {
-      strcpy(aux, args[1]);
-    } else {
-      // Concatena destino com caminho atual
-      strcpy(aux, c->actual_path);
-      strcat(aux, args[1]);
-    }
-
-    int err = rmdir(aux);
-    // Verifica se houve erro
-    if (err == 0) {
-      return_message = "250 Requested file action okay, completed.\n";
-    } else {
-      return_message = "550 Requested action not taken.\n";
-    }
+  char path[STRING_SIZE];
+  if (args[1][0] == '/') {
+    strcpy(path, args[1]);
   } else {
-    return_message = "501 Syntax error in parameters or arguments.\n";
+    // Concatena destino com caminho atual
+    strcpy(path, c->actual_path);
+    strcat(path, args[1]);
   }
-
+  printf("%s\n",path);
+  // Verifica se houve erro
+  if (rmdir(path) == 0) {
+    return_message = "250 Requested file action okay, completed.\n";
+  } else {
+    return_message = "550 Requested action not taken.\n";
+  }
   return return_message;
 }
 
