@@ -204,40 +204,39 @@ char *func_cwd(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
   char **args = split_words(message, " ");
-  // Número de palavras dentro da mensagem
-  int i = number_words(args);
+  char **aux = split_words(args[1], "\n");
 
-  if (i == 2) {
-    // Verifica a existência do diretório, caso positivo armazena na struct de
-    // estado
-    // Utiliza uma variável auxiliar para consulta da existencia do diretório
-    char consult[STRING_SIZE];
-    if (args[1][0] == '/') {
-      // Caso destino seja /, não coloca outra / no final
-      if (strcmp(args[1], "/") != 0) {
-        strcpy(consult, args[1]);
-      } else {
-        strcpy(consult, "");
-      }
-    } else {
-      // Concatena destino com caminho atual
-      strcpy(consult, c->actual_path);
-      strcat(consult, args[1]);
-    }
-    strcat(consult, "/");
-
-    // Consulta existência do diretório
-    DIR *dir = opendir(consult);
-    if (dir != NULL) {
-      strcpy(c->actual_path, consult);
-      return_message = "200 Working directory changed.\n";
-      closedir(dir);
-    }
-    else {
-      return_message = "550 Requested action not taken.\n";
-    }
+  // Verifica a existência do diretório, caso positivo armazena na struct de
+  // estado
+  // Utiliza uma variável auxiliar para consulta da existencia do diretório
+  char consult[STRING_SIZE] = "";
+  if (aux[0][0] == '/') {
+    // Vai para raiz do servidor
+    aux[0][strlen(aux[0]) - 1] = '/';
+    strcpy(consult, aux[0]);
   } else {
-    return_message = "501 Syntax error in parameters or arguments.\n";
+    // Concatena destino com caminho atual
+    strcpy(consult, c->actual_path);
+    aux[0][strlen(aux[0]) - 1] = '/';
+    strcat(consult, aux[0]);
+  }
+  printf("%s\n", consult);
+
+  // Consulta existência do diretório
+  DIR *dir = opendir(consult);
+  if (dir != NULL) {
+    strcpy(c->actual_path, consult);
+    return_message = "200 Working directory changed.\n";
+    closedir(dir);
+  }
+  else {
+    return_message = "550 Requested action not taken.\n";
+  }
+
+  // libera variáveis
+  for (int i = 0; i < 10; i++) {
+    free(aux[i]);
+    free(args[i]);
   }
 
   return return_message;
