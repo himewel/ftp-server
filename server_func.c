@@ -401,14 +401,9 @@ char *func_pasv(ConnectionStatus *c, char *message) {
   printf("%i %i\n",a,b);
 
   char *return_message = (char *) malloc(STRING_SIZE*sizeof(char));
-  sprintf(return_message, "227 Entering Passive Mode (127,0,0,1,%i,%i).\n",a,b);
+  sprintf(return_message, "227 Entering Passive Mode (192,168,1,166,%i,%i).\n",a,b);
   printf("%s\n",return_message);
   write(c->control_session, return_message, strlen(return_message));
-
-  client_s = accept(s, (struct sockaddr*)&client, &addr_len);
-  char *msg = (char*) malloc(STRING_SIZE*sizeof(char));
-  write (client_s, msg, strlen(msg)+1);
-  printf("%s\n",msg);
 
   return return_message;
 }
