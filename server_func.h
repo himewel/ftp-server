@@ -19,6 +19,7 @@ struct connection_status {
   int data_session;
   int data_session_port;
   int control_session;
+  char type;
 };
 
 typedef struct connection_status ConnectionStatus;
@@ -45,10 +46,15 @@ char *func_cdup(ConnectionStatus *c, char *message);
 char *func_smnt(ConnectionStatus *c, char *message);
 char *func_rein(ConnectionStatus *c, char *message);
 char *func_quit(ConnectionStatus *c, char *message);
+
+/* PARÂMETROS DE TRANSFERÊNCIA */
+char *func_port(ConnectionStatus *c, char *message);
+char *func_type(ConnectionStatus *c, char *message);
+
+/* COMANDOS FTP */
 char *func_list(ConnectionStatus *c, char *message);
 char *func_pwd(ConnectionStatus *c,char *message);
 char *func_mkd(ConnectionStatus *c,char *message);
 char *func_rmd(ConnectionStatus *c, char *message);
 char *func_noop(ConnectionStatus *c, char *message);
 char *func_syst(ConnectionStatus *c, char *message);
-char *func_port(ConnectionStatus *c, char *message);

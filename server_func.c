@@ -8,6 +8,9 @@ ConnectionStatus *initializeStatus() {
 
   c->connection_ok = 1;
   c->data_session = -1;
+  c->data_session_port = -1;
+  c->control_session = 0;
+  c->type = 'A';
   return c;
 };
 
@@ -86,6 +89,8 @@ int decode_message (char *command) {
     code = 13;
   } else if (strcmp(args[0],"port") == 0) {
     code = 14;
+  } else if (strcmp(args[0],"type") == 0) {
+    code = 15;
   } else {
     code = -1000;
   }
@@ -288,8 +293,61 @@ char *func_quit(ConnectionStatus *c, char *message) {
   return return_message;
 }
 
-// Lista arquivos da pasta especificada(comando LIST)
+// PARÂMETROS DE TRANSFERÊNCIA
 
+char *func_port(ConnectionStatus *c, char *message) {
+  // Decodificação das strings
+  char **words = split_words(message, " ");
+  char **args = split_words(words[1], ",");
+  char *ini = dec_to_hex(strtol(args[4], NULL, 10));
+  char *fim = dec_to_hex(strtol(args[5], NULL, 10));
+  char *concat = (char*) malloc(4*sizeof(char));
+  concat[0] = ini[0];
+  concat[1] = ini[1];
+  concat[2] = fim[0];
+  concat[3] = fim[1];
+  int porta = hex_to_dec(concat);
+
+  // Configuração do socket
+  int client_s, s;
+  struct sockaddr_in dest;
+  bzero(&dest, sizeof(dest));
+  dest.sin_family = AF_INET;
+  dest.sin_port = htons(c->data_session_port);
+  dest.sin_addr.s_addr = INADDR_ANY;
+
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
+  s = socket(AF_INET, SOCK_STREAM, 0);
+
+  if (s == -1) {
+    int erro = errno;
+    printf("Errno: %i\n", erro);
+    return "421 Service not available, closing control connection.\n";
+  }
+
+  // Atualiza status da conexão
+  c->data_session_port = porta;
+  c->data_session = s;
+
+  return "200 Command okay.\n";
+}
+
+char *func_type(ConnectionStatus *c, char *message) {
+  // Decodifica mensagem
+  char **args = split_words(message, " ");
+  printf("%s\n", args[1]);
+  // Somente ASCII implementada na versão mínima
+  if (strcmp(args[1], "A") == 0) {
+    c->type = 'A';
+    return "200 Command okay.\n";
+  } else {
+    return "504 Command not implemented for that parameter.\n";
+  }
+}
+
+// COMANDOS FTP
+
+// Lista arquivos da pasta especificada(comando LIST)
 char *func_list(ConnectionStatus *c,char *message) {
   chdir(c->actual_path);
   char shell_command[STRING_SIZE] = "dir ";
@@ -435,41 +493,4 @@ char *func_syst(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   return_message = "215 UNIX system type.\n";
   return return_message;
-}
-
-char *func_port(ConnectionStatus *c, char *message) {
-  // Decodificação das strings
-  char **words = split_words(message, " ");
-  char **args = split_words(words[1], ",");
-  char *ini = dec_to_hex(strtol(args[4], NULL, 10));
-  char *fim = dec_to_hex(strtol(args[5], NULL, 10));
-  char *concat = (char*) malloc(4*sizeof(char));
-  concat[0] = ini[0];
-  concat[1] = ini[1];
-  concat[2] = fim[0];
-  concat[3] = fim[1];
-  int porta = hex_to_dec(concat);
-
-  // Configuração do socket
-  int client_s, s;
-  struct sockaddr_in dest;
-  bzero(&dest, sizeof(dest));
-  dest.sin_family = AF_INET;
-  dest.sin_port = htons(c->data_session_port);
-  dest.sin_addr.s_addr = INADDR_ANY;
-
-  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
-  s = socket(AF_INET, SOCK_STREAM, 0);
-
-  if (s == -1) {
-    int erro = errno;
-    printf("Errno: %i\n", erro);
-    return "421 Service not available, closing control connection.\n";
-  }
-
-  // Atualiza status da conexão
-  c->data_session_port = porta;
-  c->data_session = s;
-
-  return "200 Command okay.\n";
 }
