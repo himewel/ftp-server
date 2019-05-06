@@ -101,6 +101,8 @@ int decode_message (char *command) {
     code = 15;
   } else if (strcmp(args[0],"pasv") == 0) {
     code = 16;
+  } else if (strcmp(args[0],"retr") == 0) {
+    code = 17;
   } else {
     code = -1000;
   }
@@ -556,4 +558,9 @@ char *func_syst(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   return_message = "215 UNIX system type.\n";
   return return_message;
+}
+
+char *func_retr(ConnectionStatus *c, char *message) {
+  char **args = split_words(args, " ");
+
 }

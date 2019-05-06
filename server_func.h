@@ -60,3 +60,4 @@ char *func_mkd(ConnectionStatus *c,char *message);
 char *func_rmd(ConnectionStatus *c, char *message);
 char *func_noop(ConnectionStatus *c, char *message);
 char *func_syst(ConnectionStatus *c, char *message);
+char *func_retr(ConnectionStatus *c, char *message);
