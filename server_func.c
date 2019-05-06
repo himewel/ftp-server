@@ -579,6 +579,10 @@ char *func_retr(ConnectionStatus *c, char *message) {
   struct stat buffer;
   stat(filename, &buffer);
   if (!S_ISDIR(buffer.st_mode)) {
+    // Informando abertura da conexão
+    char *mes = "150 File status okay; about to open data connection.\n";
+    write(c->control_session, mes, strlen(mes));
+
     // Conecta com cliente
     struct sockaddr_in dest;
     bzero(&dest, sizeof(dest));
