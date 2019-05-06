@@ -561,6 +561,48 @@ char *func_syst(ConnectionStatus *c, char *message) {
 }
 
 char *func_retr(ConnectionStatus *c, char *message) {
-  char **args = split_words(args, " ");
+  // Recolhe nome do arquivo selecionado
+  char **args = split_words(message, " ");
+  printf("%s\n", args[1]);
 
+  // Define se é um path ou está no diretório atual
+  char filename[STRING_SIZE];
+  if (args[1][0] == '/') {
+    strcpy(filename, args[1]);
+  } else {
+    // Concatena destino com caminho atual
+    strcpy(filename, c->actual_path);
+    strcat(filename, args[1]);
+  }
+
+  // Checa se é um arquivo ou um diretório
+  struct stat buffer;
+  stat(filename, &buffer);
+  if (!S_ISDIR(buffer.st_mode)) {
+    // Conecta com cliente
+    struct sockaddr_in dest;
+    bzero(&dest, sizeof(dest));
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(c->data_session_port);
+    dest.sin_addr.s_addr = INADDR_ANY;
+    int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+    // Envia arquivo
+    char buf[BUF_SIZE];
+    int tam_to_read = 0;
+    int file = open(filename,O_RDONLY);
+    for (int i = buffer.st_size; i > 0; i -= tam_to_read) {
+      tam_to_read = (i < BUF_SIZE) ? i : BUF_SIZE;
+      printf("%i\n",i);
+      read(file, buf, tam_to_read);
+      printf("%s", buf);
+      write(c->data_session, buf, strlen(buf));
+    }
+    // Fecha conexão
+    shutdown(c->data_session, SHUT_RDWR);
+    close(client_s);
+
+    return "250 Requested file action okay, completed.\n";
+  } else {
+    return "450 Requested file action not taken.\n";
+  }
 }

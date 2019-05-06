@@ -8,11 +8,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
-#include<time.h>
+#include <time.h>
+#include <fcntl.h>
 
 #define PORTNUM 2300
 #define MAX_ARGUMENTS 5
 #define STRING_SIZE 200
+#define BUF_SIZE 8192
 
 struct connection_status {
   char actual_path[STRING_SIZE];
