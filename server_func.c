@@ -41,9 +41,16 @@ void send_data(ConnectionStatus *c, char *mensagem) {
   printf("%s", mes);
   write(c->control_session, mes, strlen(mes));
 
-  // Envia dado
-  w = write(c->data_session, mensagem, strlen(mensagem));
-  printf("%s", mensagem);
+  // Substitue \n por \r\n e envia para o cliente
+  char *token = strtok(mensagem, "\n");
+  while (token != NULL) {
+    char *aux;
+    sprintf(aux, "%s\r\n", token);
+    w = write(c->data_session, aux, strlen(aux));
+    printf("%s\n", token);
+    token = strtok(NULL, "\n");
+  }
+  // Caso haja erro
   if (w == -1) {
     int erro = errno;
     printf("%i\n", erro);
@@ -53,6 +60,7 @@ void send_data(ConnectionStatus *c, char *mensagem) {
   }
   // Fecha conexão
   mes = "226 Closing data connection.\n";
+  printf("%s",mes);
   write(c->control_session, mes, strlen(mes));
   shutdown(c->data_session, SHUT_RDWR);
   close(client_s);
