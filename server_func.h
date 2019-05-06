@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include<time.h>
 
 #define PORTNUM 2300
 #define MAX_ARGUMENTS 5
@@ -31,8 +32,8 @@ int decode_message (char *command);
 void strlwr (char *s);
 int number_words(char **m);
 char **split_words(char *m, char *limit);
-int hex_to_dec(char *hex);
-char *dec_to_hex(int dec);
+int hex_to_dec(char *hex, int n);
+char *dec_to_hex(int dec, int n);
 
 /* TRANSFERÊNCIA DE DADOS */
 void send_data(ConnectionStatus *c, char *mensagem);
@@ -50,6 +51,7 @@ char *func_quit(ConnectionStatus *c, char *message);
 /* PARÂMETROS DE TRANSFERÊNCIA */
 char *func_port(ConnectionStatus *c, char *message);
 char *func_type(ConnectionStatus *c, char *message);
+char *func_pasv(ConnectionStatus *c, char *message);
 
 /* COMANDOS FTP */
 char *func_list(ConnectionStatus *c, char *message);

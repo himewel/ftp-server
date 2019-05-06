@@ -97,6 +97,9 @@ int main (void) {
         case 15:
           strcpy(msg,func_type(c,msg));
           break;
+        case 16:
+          strcpy(msg,func_pasv(c,msg));
+          break;
         default:
           strcpy(msg,"202 Command not implemented, superfluous at this site.\n");
           break;

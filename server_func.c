@@ -37,7 +37,7 @@ void send_data(ConnectionStatus *c, char *mensagem) {
   }
 
   // Informa início da transferência
-  mes = "125-Data connection already open; transfer starting.\n";
+  mes = "125 Data connection already open; transfer starting.\n";
   printf("%s", mes);
   write(c->control_session, mes, strlen(mes));
 
@@ -52,7 +52,7 @@ void send_data(ConnectionStatus *c, char *mensagem) {
     return;
   }
   // Fecha conexão
-  mes = "250 Closing data connection.\n";
+  mes = "226 Closing data connection.\n";
   write(c->control_session, mes, strlen(mes));
   shutdown(c->data_session, SHUT_RDWR);
   close(client_s);
@@ -91,6 +91,8 @@ int decode_message (char *command) {
     code = 14;
   } else if (strcmp(args[0],"type") == 0) {
     code = 15;
+  } else if (strcmp(args[0],"pasv") == 0) {
+    code = 16;
   } else {
     code = -1000;
   }
@@ -160,13 +162,12 @@ char **split_words(char *m, char *limit) {
   return res;
 }
 
-int hex_to_dec(char *hex) {
+int hex_to_dec(char *hex, int n) {
   int val;
   int decimal = 0;
   int pow = 1;
-  printf("%s\n", hex);
 
-  for (int i = 3; i >= 0; i--) {
+  for (int i = n-1; i >= 0; i--) {
     if (hex[i] >= '0' && hex[i] <= '9') {
         val = hex[i] - 48;
     }
@@ -179,14 +180,16 @@ int hex_to_dec(char *hex) {
   return decimal;
 }
 
-char *dec_to_hex(int dec) {
-  char HEXVALUE[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-  char *hex = (char*) malloc(2*sizeof(char));
-  int index, rem;
+char *dec_to_hex(int dec, int n) {
+  char HEXVALUE[] = {'0', '1', '2', '3', '4', '5', '6','7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+  char *hex = (char*) malloc(n*sizeof(char));
 
-  hex[1] = HEXVALUE[dec % 16];
-  dec /= 16;
-  hex[0] = HEXVALUE[dec % 16];
+  for (int i = n-1; i >= 0; i--) {
+    hex[i] = HEXVALUE[dec % 16];
+    if (dec > 0) {
+      dec /= 16;
+    }
+  }
 
   return hex;
 }
@@ -299,14 +302,14 @@ char *func_port(ConnectionStatus *c, char *message) {
   // Decodificação das strings
   char **words = split_words(message, " ");
   char **args = split_words(words[1], ",");
-  char *ini = dec_to_hex(strtol(args[4], NULL, 10));
-  char *fim = dec_to_hex(strtol(args[5], NULL, 10));
+  char *ini = dec_to_hex(strtol(args[4], NULL, 10), 2);
+  char *fim = dec_to_hex(strtol(args[5], NULL, 10), 2);
   char *concat = (char*) malloc(4*sizeof(char));
   concat[0] = ini[0];
   concat[1] = ini[1];
   concat[2] = fim[0];
   concat[3] = fim[1];
-  int porta = hex_to_dec(concat);
+  int porta = hex_to_dec(concat, 4);
 
   // Configuração do socket
   int client_s, s;
@@ -343,6 +346,63 @@ char *func_type(ConnectionStatus *c, char *message) {
   } else {
     return "504 Command not implemented for that parameter.\n";
   }
+}
+
+char *func_pasv(ConnectionStatus *c, char *message) {
+  // define porta para conexão aleatória
+  srand(time(NULL));
+  int porta = (rand() % 65035) + 5000;
+  printf("%i\n",porta);
+
+  // Configuração do socket
+  int client_s, s;
+  struct sockaddr_in dest, client;
+  int addr_len = sizeof(client);
+  bzero(&dest, sizeof(dest));
+  dest.sin_family = AF_INET;
+  dest.sin_port = htons(porta);
+  dest.sin_addr.s_addr = INADDR_ANY;
+
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
+  s = socket(AF_INET, SOCK_STREAM, 0);
+  bind(s, (struct sockaddr*)&dest, sizeof(dest));
+  listen(s, 5);
+
+
+  if (s == -1) {
+    int erro = errno;
+    printf("Errno: %i\n", erro);
+    return "421 Service not available, closing control connection.\n";
+  }
+
+  // Atualiza status da conexão
+  c->data_session_port = porta;
+  c->data_session = s;
+
+  // Formata mensagem para decodificação do cliente
+  char *hex = dec_to_hex(porta, 4);
+  printf("%s\n",hex);
+  char ini[2];
+  char fim[2];
+  ini[0] = hex[0];
+  ini[1] = hex[1];
+  fim[0] = hex[2];
+  fim[1] = hex[3];
+  int a = hex_to_dec(ini, 2);
+  int b = hex_to_dec(fim, 2);
+  printf("%i %i\n",a,b);
+
+  char *return_message = (char *) malloc(STRING_SIZE*sizeof(char));
+  sprintf(return_message, "227 Entering Passive Mode (127,0,0,1,%i,%i).\n",a,b);
+  printf("%s\n",return_message);
+  write(c->control_session, return_message, strlen(return_message));
+
+  client_s = accept(s, (struct sockaddr*)&client, &addr_len);
+  char *msg = (char*) malloc(STRING_SIZE*sizeof(char));
+  write (client_s, msg, strlen(msg)+1);
+  printf("%s\n",msg);
+
+  return return_message;
 }
 
 // COMANDOS FTP
