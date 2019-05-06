@@ -15,6 +15,8 @@ int main (void) {
 
   // Reserva socket
   s = socket(AF_INET, SOCK_STREAM, 0);
+  int reuse = 1;
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
   if (bind(s, (struct sockaddr*)&self, sizeof(self)) == -1) {
     printf("  Falha na criação do socket\n");
     return 0;
@@ -34,6 +36,7 @@ int main (void) {
 
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();
+    c->control_session = client_s;
 
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (client_s != -1 && c->connection_ok == 1) {
@@ -87,6 +90,15 @@ int main (void) {
           break;
         case 13:
           strcpy(msg,func_syst(c,msg));
+          break;
+        case 14:
+          strcpy(msg,func_port(c,msg));
+          break;
+        case 15:
+          strcpy(msg,func_type(c,msg));
+          break;
+        case 16:
+          strcpy(msg,func_pasv(c,msg));
           break;
         default:
           strcpy(msg,"202 Command not implemented, superfluous at this site.\n");
