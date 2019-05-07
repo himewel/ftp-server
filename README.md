@@ -16,13 +16,11 @@ Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, ev
 
 A porta padrão utilizada é a 2300, a conexão inicialmente é realizada pelo localhost.
 
-Intruções parcialmente implementadas: USER, PASS, ACCT, CWD, CDUP, SMNT, REIN, QUIT, PWD, LIST, MKD, RMD, NOOP.
+Instruções adaptadas para o cliente FTP padrão: USER, PASS, CWD, CDUP, PWD, LIST, SYST, PORT, MKD, RMD, NOOP, RETR, STOR.
 
-Instruções adaptadas para o cliente FTP padrão: USER, PASS, CWD, CDUP, PWD, LIST, SYST, PORT.
+Necessitam de revisão: LIST, PASV, RETR.
 
 ## Minimum Implementation
-
-
 
 In order to make FTP workable without needless error messages, the
 following minimum implementation is required for all servers:
@@ -46,9 +44,9 @@ The default values for transfer parameters are:
 
 | Access control commands | Transfer parameter commands | Ftp service commands |
 | ----------------------- | --------------------------- | -------------------- |
-| USER (0) | PORT (14) | RETR |
-| PASS (1) | PASV | STOR |
-| ACCT (2) | TYPE | STOU |
+| USER (0) | PORT (14) | RETR (17) |
+| PASS (1) | PASV (16) | STOR (18) |
+| ACCT (2) | TYPE (15) | STOU |
 | CWD (3) | STRU | APPE |
 | CDUP (4) | MODE | ALLO |
 | SMNT (5) | | REST |
