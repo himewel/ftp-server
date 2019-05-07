@@ -630,9 +630,46 @@ char *func_stor(ConnectionStatus *c, char *message) {
   printf("%s\n",filename);
 
   // Checa se é um arquivo ou um diretório
+  char *mes;
   struct stat buffer;
   stat(filename, &buffer);
   if (!S_ISREG(buffer.st_mode)) {
+    // Conecta com cliente
+    struct sockaddr_in dest;
+    bzero(&dest, sizeof(dest));
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(c->data_session_port);
+    dest.sin_addr.s_addr = INADDR_ANY;
+    int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+
+    // Informa início da transferência
+    mes = "125 Data connection already open; transfer starting.\n";
+    printf("%s", mes);
+    write(c->control_session, mes, strlen(mes));
+
+    // Recebe mensagens do cliente
+    while (1) {
+      if (client_s == 0) {
+        char *read_message = (char*) malloc(BUF_SIZE*sizeof(char));
+        int j = read(c->data_session, read_message,sizeof(read_message));
+        if (j == 0) {
+          break;
+        }
+        printf("%s\n", read_message);
+        free(read_message);
+      } else {
+        break;
+      }
+    }
+
+    // Fecha conexão
+    mes = "226 Closing data connection.\n";
+    printf("%s",mes);
+    write(c->control_session, mes, strlen(mes));
+    shutdown(c->data_session, SHUT_RDWR);
+    close(client_s);
+    c->data_session = -1;
+
     return "250 Requested file action okay, completed.\n";
   } else {
     return "450 Requested file action not taken.\n";
