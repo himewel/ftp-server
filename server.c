@@ -103,6 +103,9 @@ int main (void) {
         case 17:
           strcpy(msg,func_retr(c,msg));
           break;
+        case 18:
+          strcpy(msg,func_stor(c,msg));
+          break;
         default:
           strcpy(msg,"202 Command not implemented, superfluous at this site.\n");
           break;

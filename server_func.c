@@ -103,6 +103,8 @@ int decode_message (char *command) {
     code = 16;
   } else if (strcmp(args[0],"retr") == 0) {
     code = 17;
+  } else if (strcmp(args[0],"stor") == 0) {
+    code = 18;
   } else {
     code = -1000;
   }
@@ -605,6 +607,32 @@ char *func_retr(ConnectionStatus *c, char *message) {
     shutdown(c->data_session, SHUT_RDWR);
     close(client_s);
 
+    return "250 Requested file action okay, completed.\n";
+  } else {
+    return "450 Requested file action not taken.\n";
+  }
+}
+
+char *func_stor(ConnectionStatus *c, char *message) {
+  // Recolhe nome do arquivo selecionado
+  char **args = split_words(message, " ");
+  printf("%s\n", args[1]);
+
+  // Define se é um path ou está no diretório atual
+  char filename[STRING_SIZE];
+  if (args[1][0] == '/') {
+    strcpy(filename, args[1]);
+  } else {
+    // Concatena destino com caminho atual
+    strcpy(filename, c->actual_path);
+    strcat(filename, args[1]);
+  }
+  printf("%s\n",filename);
+
+  // Checa se é um arquivo ou um diretório
+  struct stat buffer;
+  stat(filename, &buffer);
+  if (!S_ISREG(buffer.st_mode)) {
     return "250 Requested file action okay, completed.\n";
   } else {
     return "450 Requested file action not taken.\n";
