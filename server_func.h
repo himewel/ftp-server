@@ -43,11 +43,8 @@ void send_data(ConnectionStatus *c, char *mensagem);
 /* CONTROLE DE ACESSO */
 char *func_user(ConnectionStatus *c, char *message);
 char *func_pass(ConnectionStatus *c, char *message);
-char *func_acct(ConnectionStatus *c, char *message);
 char *func_cwd(ConnectionStatus *c, char *message);
 char *func_cdup(ConnectionStatus *c, char *message);
-char *func_smnt(ConnectionStatus *c, char *message);
-char *func_rein(ConnectionStatus *c, char *message);
 char *func_quit(ConnectionStatus *c, char *message);
 
 /* PARÂMETROS DE TRANSFERÊNCIA */

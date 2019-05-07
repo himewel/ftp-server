@@ -81,14 +81,8 @@ int decode_message (char *command) {
     code = 0;
   } else if (strcmp(args[0],"pass") == 0) {
     code = 1;
-  } else if (strcmp(args[0],"acct") == 0) {
-    code = 2;
   } else if (strcmp(args[0],"cdup") == 0) {
     code = 4;
-  } else if (strcmp(args[0],"smnt") == 0) {
-    code = 5;
-  } else if (strcmp(args[0],"rein") == 0) {
-    code = 6;
   } else if (strcmp(args[0],"quit") == 0) {
     code = 7;
   } else if (strcmp(args[0],"list") == 0) {
@@ -220,12 +214,6 @@ char *func_pass(ConnectionStatus *c, char *message) {
   return return_message;
 }
 
-char *func_acct(ConnectionStatus *c, char *message) {
-  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-  return_message = "230 User logged in, proceed.\n";
-  return return_message;
-}
-
 char *func_cwd(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   // Recebe mensagem decodificada em espaços, alocada itens do vetor
@@ -287,24 +275,12 @@ char *func_cdup(ConnectionStatus *c, char *message) {
   return return_message;
 }
 
-char *func_smnt(ConnectionStatus *c, char *message) {
-  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-  return_message = "502 Command not implemented.\n";
-  return return_message;
-}
-
-char *func_rein(ConnectionStatus *c, char *message) {
-  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-  free(c);
-  c = initializeStatus();
-  return_message = "220 Service ready for new user.\n";
-  return return_message;
-}
-
 char *func_quit(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   c->connection_ok = 0;
   return_message = "221 Service closing control connection.\n";
+  printf("%s",return_message);
+  printf("--------------------------------------------------------------------------------\n");
   return return_message;
 }
 
@@ -324,13 +300,7 @@ char *func_port(ConnectionStatus *c, char *message) {
   int porta = hex_to_dec(concat, 4);
 
   // Configuração do socket
-  int client_s, s;
-  struct sockaddr_in dest;
-  bzero(&dest, sizeof(dest));
-  dest.sin_family = AF_INET;
-  dest.sin_port = htons(c->data_session_port);
-  dest.sin_addr.s_addr = INADDR_ANY;
-
+  int s;
   setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
   s = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -380,7 +350,6 @@ char *func_pasv(ConnectionStatus *c, char *message) {
   bind(s, (struct sockaddr*)&dest, sizeof(dest));
   listen(s, 5);
 
-
   if (s == -1) {
     int erro = errno;
     printf("Errno: %i\n", erro);
@@ -406,8 +375,6 @@ char *func_pasv(ConnectionStatus *c, char *message) {
 
   char *return_message = (char *) malloc(STRING_SIZE*sizeof(char));
   sprintf(return_message, "227 Entering Passive Mode (192,168,1,166,%i,%i).\n",a,b);
-  printf("%s\n",return_message);
-  write(c->control_session, return_message, strlen(return_message));
 
   return return_message;
 }
@@ -552,7 +519,7 @@ char *func_rmd(ConnectionStatus *c, char *message) {
 
 char *func_noop(ConnectionStatus *c, char *message) {
     char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-    return_message = "OK \n";
+    return_message = "200 OK.\n";
     return return_message;
 }
 
@@ -648,6 +615,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
     write(c->control_session, mes, strlen(mes));
 
     // Recebe mensagens do cliente
+    FILE *f = fopen(filename, "w");
     while (1) {
       if (client_s == 0) {
         char *read_message = (char*) malloc(8*sizeof(char));
@@ -656,16 +624,18 @@ char *func_stor(ConnectionStatus *c, char *message) {
           break;
         }
         printf("%s\n", read_message);
+        fprintf(f, "%s",read_message);
         free(read_message);
       } else {
         break;
       }
     }
+    fclose(f);
 
     // Fecha conexão
     mes = "226 Closing data connection.\n";
     printf("%s",mes);
-    write(c->control_session, mes, strlen(mes));
+    write(c->data_session, mes, strlen(mes));
     shutdown(c->data_session, SHUT_RDWR);
     close(client_s);
     c->data_session = -1;

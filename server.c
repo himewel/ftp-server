@@ -55,20 +55,11 @@ int main (void) {
         case 1:
           strcpy(msg,func_pass(c,msg));
           break;
-        case 2:
-          strcpy(msg,func_acct(c,msg));
-          break;
         case 3:
           strcpy(msg,func_cwd(c,msg));
           break;
         case 4:
           strcpy(msg,func_cdup(c,msg));
-          break;
-        case 5:
-          strcpy(msg,func_smnt(c,msg));
-          break;
-        case 6:
-          strcpy(msg,func_rein(c,msg));
           break;
         case 7:
           strcpy(msg,func_quit(c,msg));
@@ -113,7 +104,6 @@ int main (void) {
       write(client_s, msg, strlen(msg) + 1);
     }
     free(c);
-    client_s = -1;
   }
 
   return 0;
