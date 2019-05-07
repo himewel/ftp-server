@@ -45,7 +45,7 @@ int main (void) {
     // Recebe conexão
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     strcpy(msg, "220 Service ready for new user.\n");
-    write (client_s, msg, strlen(msg)+1);
+    write(client_s, msg, strlen(msg));
 
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();
@@ -58,7 +58,13 @@ int main (void) {
       printf("--------------------------------------------------------------------------------\n");
       bzero(msg, STRING_SIZE);
       // Decodifica mensagem e trata
-      read(client_s, msg, sizeof(msg));
+      int r = read(client_s, msg, sizeof(msg));
+      if (r == -1) {
+        printf("Conexão perdida com cliente: %i\n", errno);
+        strcpy(msg, "421 Service not available, closing control connection.\n");
+        write(client_s, msg, strlen(msg) + 1);
+        break;
+      }
       printf("%s", msg);
       int message = decode_message(msg);
       // Trata o comando recebido
@@ -115,10 +121,11 @@ int main (void) {
           strcpy(msg,"202 Command not implemented, superfluous at this site.\n");
           break;
       }
-      write(client_s, msg, strlen(msg) + 1);
+      write(client_s, msg, strlen(msg));
     }
     free(c);
   }
+
 
   return 0;
 }

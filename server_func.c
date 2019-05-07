@@ -262,6 +262,7 @@ char *func_port(ConnectionStatus *c, char *message) {
   // Atualiza status da conexão
   c->data_session_port = porta;
   c->data_session = s;
+  printf("%i\n",porta);
 
   return "200 Command okay.\n";
 }
@@ -349,7 +350,7 @@ char *func_list(ConnectionStatus *c,char *message) {
   // caso o cliente tenha setado uma pasta especifica
   // faz com que os erros sejam escritos na menssagem caso ocorra
   sprintf(shell_command, "dir %s 2>&1",path);
-  printf("%s \n", shell_command);
+  printf("%s\n", shell_command);
 
   //chama o comando no sistema e salva em um arquivo
   arquivos = popen(shell_command, "r");
@@ -367,18 +368,20 @@ char *func_list(ConnectionStatus *c,char *message) {
 
   // a menssagem de retorno possui um \n no final entao para podermos comparalas
   strcat(path,"\n");
-  // tambem devemos checar a possibilidade de o cliente estar busando informacoes sobre um arquivo especifico
+  // tambem devemos checar a possibilidade de o cliente estar usando informacoes sobre um arquivo especifico
   if (strcmp(return_message, path) == 0){
     // caso ele esteja vamos utilizar o comando stat para retornar as informacoes
     sprintf(shell_command, "stat ");
     strcat(shell_command,c->actual_path);
     sprintf(shell_command, "%s%s",shell_command,path);
+    printf("%s\n",shell_command);
 
     arquivos = popen(shell_command,"r");
     //converte o arquivo para string
     for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++) {
       return_message[i] = ch;
     }
+    printf("%s\n",return_message);
     // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
     // deveremos retornar uma menssagem de erro
     if (strncmp(return_message, "stat:", 5) == 0) {
