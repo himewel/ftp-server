@@ -10,11 +10,13 @@
 #include <dirent.h>
 #include <time.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 #define PORTNUM 2300
 #define MAX_ARGUMENTS 5
 #define STRING_SIZE 200
 #define BUF_SIZE 8192
+#define MAX_CLIENTS 20
 
 struct connection_status {
   char actual_path[STRING_SIZE];
@@ -61,3 +63,6 @@ char *func_noop(ConnectionStatus *c, char *message);
 char *func_syst(ConnectionStatus *c, char *message);
 char *func_retr(ConnectionStatus *c, char *message);
 char *func_stor(ConnectionStatus *c, char *message);
+
+/* Thread*/
+void *multUser(void *client);
