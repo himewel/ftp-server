@@ -650,7 +650,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
     // Recebe mensagens do cliente
     while (1) {
       if (client_s == 0) {
-        char *read_message = (char*) malloc(BUF_SIZE*sizeof(char));
+        char *read_message = (char*) malloc(8*sizeof(char));
         int j = read(c->data_session, read_message,sizeof(read_message));
         if (j == 0) {
           break;
