@@ -82,23 +82,25 @@ int decode_message (char *command) {
   } else if (strcmp(args[0],"pass") == 0) {
     code = 1;
   } else if (strcmp(args[0],"cdup") == 0) {
-    code = 4;
+    code = 2;
   } else if (strcmp(args[0],"quit") == 0) {
-    code = 7;
+    code = 3;
   } else if (strcmp(args[0],"list") == 0) {
-    code = 8;
+    code = 4;
   } else if (strcmp(args[0],"syst") == 0) {
-    code = 13;
+    code = 5;
   } else if (strcmp(args[0],"port") == 0) {
-    code = 14;
+    code = 6;
   } else if (strcmp(args[0],"type") == 0) {
-    code = 15;
+    code = 7;
   } else if (strcmp(args[0],"pasv") == 0) {
-    code = 16;
+    code = 8;
   } else if (strcmp(args[0],"retr") == 0) {
-    code = 17;
+    code = 9;
   } else if (strcmp(args[0],"stor") == 0) {
-    code = 18;
+    code = 10;
+  } else if (strcmp(args[0],"noop") == 0) {
+    code = 11;
   } else {
     code = -1000;
   }
@@ -106,13 +108,13 @@ int decode_message (char *command) {
   if (code == -1000) {
     args[0][3] = 0;
     if (strcmp(args[0],"cwd") == 0) {
-      code = 3;
+      code = 20;
     } else if (strcmp(args[0],"pwd") == 0) {
-      code = 9;
+      code = 21;
     } else if (strcmp(args[0],"mkd") == 0) {
-      code = 10;
+      code = 22;
     } else if (strcmp(args[0],"rmd") == 0) {
-      code = 11;
+      code = 23;
     }
   }
 

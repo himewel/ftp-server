@@ -69,46 +69,46 @@ int main (void) {
         case 1:
           strcpy(msg,func_pass(c,msg));
           break;
-        case 3:
+        case 20:
           strcpy(msg,func_cwd(c,msg));
           break;
-        case 4:
+        case 2:
           strcpy(msg,func_cdup(c,msg));
           break;
-        case 7:
+        case 3:
           strcpy(msg,func_quit(c,msg));
           break;
-        case 8:
+        case 4:
           strcpy(msg,func_list(c,msg));
           break;
-        case 9:
+        case 21:
           strcpy(msg,func_pwd(c,msg));
           break;
-        case 10:
+        case 22:
           strcpy(msg,func_mkd(c,msg));
           break;
-        case 11:
+        case 23:
           strcpy(msg,func_rmd(c,msg));
           break;
-        case 12:
+        case 11:
           strcpy(msg,func_noop(c,msg));
           break;
-        case 13:
+        case 5:
           strcpy(msg,func_syst(c,msg));
           break;
-        case 14:
+        case 6:
           strcpy(msg,func_port(c,msg));
           break;
-        case 15:
+        case 7:
           strcpy(msg,func_type(c,msg));
           break;
-        case 16:
+        case 8:
           strcpy(msg,func_pasv(c,msg));
           break;
-        case 17:
+        case 9:
           strcpy(msg,func_retr(c,msg));
           break;
-        case 18:
+        case 10:
           strcpy(msg,func_stor(c,msg));
           break;
         default:
