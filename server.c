@@ -5,13 +5,26 @@ int main (void) {
   int flag_connection;
   char msg[STRING_SIZE];
 
+  // Detectando IP da rede sem fio
+  int fd;
+  struct ifreq ifr;
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  // Determina que o endereço é IPv4
+  ifr.ifr_addr.sa_family = AF_INET;
+  // Pega endereço na placa de rede
+  strncpy(ifr.ifr_name, "wlp2s0", IFNAMSIZ-1);
+  ioctl(fd, SIOCGIFADDR, &ifr);
+  close(fd);
+  char *address = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+  printf("%s\n", address);
+
   // Configuração do socket para receber solicitações de qualquer endereço
   struct sockaddr_in self, client;
   addr_len = sizeof(client);
   bzero(&self, sizeof(self));
   self.sin_family = AF_INET;
   self.sin_port = htons(PORTNUM);
-  self.sin_addr.s_addr = INADDR_ANY;
+  self.sin_addr.s_addr = inet_addr(address);
 
   // Reserva socket
   s = socket(AF_INET, SOCK_STREAM, 0);
@@ -37,6 +50,7 @@ int main (void) {
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();
     c->control_session = client_s;
+    c->server_address = address;
 
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (client_s != -1 && c->connection_ok == 1) {

@@ -26,7 +26,7 @@ void send_data(ConnectionStatus *c, char *mensagem) {
   bzero(&dest, sizeof(dest));
   dest.sin_family = AF_INET;
   dest.sin_port = htons(c->data_session_port);
-  dest.sin_addr.s_addr = INADDR_ANY;
+  dest.sin_addr.s_addr = inet_addr(c->server_address);
   client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
   if (client_s == -1) {
     int erro = errno;
@@ -343,7 +343,7 @@ char *func_pasv(ConnectionStatus *c, char *message) {
   bzero(&dest, sizeof(dest));
   dest.sin_family = AF_INET;
   dest.sin_port = htons(porta);
-  dest.sin_addr.s_addr = INADDR_ANY;
+  dest.sin_addr.s_addr = inet_addr(c->server_address);
 
   setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
   s = socket(AF_INET, SOCK_STREAM, 0);
@@ -374,7 +374,11 @@ char *func_pasv(ConnectionStatus *c, char *message) {
   printf("%i %i\n",a,b);
 
   char *return_message = (char *) malloc(STRING_SIZE*sizeof(char));
-  sprintf(return_message, "227 Entering Passive Mode (192,168,1,166,%i,%i).\n",a,b);
+  char ip[STRING_SIZE];
+  strcpy(ip,c->server_address);
+  char **ip_aux = split_words(ip, ".");
+  printf("%s %s %s %s\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3]);
+  sprintf(return_message, "227 (%s,%s,%s,%s,%i,%i).\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3],a,b);
 
   return return_message;
 }
@@ -557,7 +561,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
     bzero(&dest, sizeof(dest));
     dest.sin_family = AF_INET;
     dest.sin_port = htons(c->data_session_port);
-    dest.sin_addr.s_addr = INADDR_ANY;
+    dest.sin_addr.s_addr = inet_addr(c->server_address);
     int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
     // Envia arquivo
     char buf[BUF_SIZE];
@@ -606,7 +610,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
     bzero(&dest, sizeof(dest));
     dest.sin_family = AF_INET;
     dest.sin_port = htons(c->data_session_port);
-    dest.sin_addr.s_addr = INADDR_ANY;
+    dest.sin_addr.s_addr = inet_addr(c->server_address);
     int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
 
     // Informa início da transferência

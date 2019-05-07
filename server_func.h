@@ -10,8 +10,11 @@
 #include <dirent.h>
 #include <time.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
-#define PORTNUM 2300
+#define PORTNUM 8080
 #define MAX_ARGUMENTS 5
 #define STRING_SIZE 200
 #define BUF_SIZE 8192
@@ -23,6 +26,7 @@ struct connection_status {
   int data_session_port;
   int control_session;
   char type;
+  char *server_address;
 };
 
 typedef struct connection_status ConnectionStatus;
