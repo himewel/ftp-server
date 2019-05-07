@@ -9,64 +9,11 @@ ConnectionStatus *initializeStatus() {
   c->connection_ok = 1;
   c->data_session = -1;
   c->data_session_port = -1;
-  c->control_session = 0;
+  c->control_session = -1;
   c->type = 'A';
+
   return c;
 };
-
-/* ENVIO DE DADOS */
-
-void send_data(ConnectionStatus *c, char *mensagem) {
-  int client_s;
-  int w;
-  char *mes;
-
-  // Conecta com cliente
-  struct sockaddr_in dest;
-  bzero(&dest, sizeof(dest));
-  dest.sin_family = AF_INET;
-  dest.sin_port = htons(c->data_session_port);
-  dest.sin_addr.s_addr = inet_addr(c->server_address);
-  client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
-  if (client_s == -1) {
-    int erro = errno;
-    printf("%i\n", erro);
-    mes = "425 Can't open data connection.\n";
-    write(c->control_session, mes, strlen(mes));
-    return;
-  }
-
-  // Informa início da transferência
-  mes = "125 Data connection already open; transfer starting.\n";
-  printf("%s", mes);
-  write(c->control_session, mes, strlen(mes));
-
-  // Substitue \n por \r\n e envia para o cliente
-  char *token = strtok(mensagem, "\n");
-  while (token != NULL) {
-    char *aux;
-    sprintf(aux, "%s\r\n", token);
-    w = write(c->data_session, aux, strlen(aux));
-    // Caso haja erro
-    if (w == -1) {
-      int erro = errno;
-      printf("%i\n", erro);
-      mes = "425 Can't open data connection.\n";
-      write(c->control_session, mes, strlen(mes));
-      return;
-    }
-    token = strtok(NULL, "\n");
-  }
-
-  // Fecha conexão
-  mes = "226 Closing data connection.\n";
-  printf("%s",mes);
-  write(c->control_session, mes, strlen(mes));
-  shutdown(c->data_session, SHUT_RDWR);
-  close(client_s);
-  c->data_session = -1;
-  return;
-}
 
 /* DECODIFICAÇÃO DO COMANDO */
 
@@ -335,7 +282,7 @@ char *func_type(ConnectionStatus *c, char *message) {
 char *func_pasv(ConnectionStatus *c, char *message) {
   // define porta para conexão aleatória
   srand(time(NULL));
-  int porta = (rand() % 65035) + 5000;
+  int porta = (rand() % 65035) + 500;
   printf("%i\n",porta);
 
   // Configuração do socket
@@ -390,19 +337,18 @@ char *func_pasv(ConnectionStatus *c, char *message) {
 // Lista arquivos da pasta especificada(comando LIST)
 char *func_list(ConnectionStatus *c,char *message) {
   chdir(c->actual_path);
-  char shell_command[STRING_SIZE] = "dir ";
+  char shell_command[STRING_SIZE];
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   char **args = split_words(message, " ");
   char *path = args[1];
   FILE *arquivos;
+  int w;
   char ch;
 
   // cria o sintax do comando dir
   // caso o cliente tenha setado uma pasta especifica
-  strcat(shell_command, path);
-
   // faz com que os erros sejam escritos na menssagem caso ocorra
-  strcat(shell_command," 2>&1");
+  sprintf(shell_command, "dir %s 2>&1",path);
   printf("%s \n", shell_command);
 
   //chama o comando no sistema e salva em um arquivo
@@ -416,8 +362,7 @@ char *func_list(ConnectionStatus *c,char *message) {
   // pegando as 4 primeiras letras da menssagem pois se deu erro no dir vai exibir dir:
   if (strncmp(return_message, "dir:", 4) == 0){
     pclose(arquivos);
-    return_message = "550 Path not found\n";
-    return return_message;
+    return "550 Path not found\n";
   }
 
   // a menssagem de retorno possui um \n no final entao para podermos comparalas
@@ -425,28 +370,65 @@ char *func_list(ConnectionStatus *c,char *message) {
   // tambem devemos checar a possibilidade de o cliente estar busando informacoes sobre um arquivo especifico
   if (strcmp(return_message, path) == 0){
     // caso ele esteja vamos utilizar o comando stat para retornar as informacoes
-    strcpy(shell_command, "stat ");
-    strcat(shell_command, c->actual_path);
-    strcat(shell_command, path);
+    sprintf(shell_command, "stat ");
+    strcat(shell_command,c->actual_path);
+    sprintf(shell_command, "%s%s",shell_command,path);
 
     arquivos = popen(shell_command,"r");
     //converte o arquivo para string
-    for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++){
+    for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++) {
       return_message[i] = ch;
     }
     // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
     // deveremos retornar uma menssagem de erro
-    if (strncmp(return_message, "stat:", 5) == 0){
-      return_message = "550 File not found\n";
-      return return_message;
+    if (strncmp(return_message, "stat:", 5) == 0) {
+      return "550 File not found\n";
     }
   }
-
-  send_data(c, return_message);
-
   pclose(arquivos);
-  return "";
+
+  // Conecta com cliente
+  struct sockaddr_in dest;
+  bzero(&dest, sizeof(dest));
+  dest.sin_family = AF_INET;
+  dest.sin_port = htons(c->data_session_port);
+  dest.sin_addr.s_addr = inet_addr(c->server_address);
+  int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+  if (client_s == -1) {
+    printf("Err: %i\n", errno);
+    return "425 Can't open data connection.\n";
   }
+
+  // Informa início da transferência
+  char *mes = "125 Data connection already open; transfer starting.\n";
+  printf("%s", mes);
+  write(c->control_session, mes, strlen(mes));
+
+  printf("%s\n", return_message);
+
+  // Substitue \n por \r\n e envia para o cliente
+  char *token = strtok(return_message, "\n");
+  while (token != NULL) {
+    char *aux;
+    sprintf(aux, "%s\r\n", token);
+    w = write(c->data_session, aux, strlen(aux));
+    // Caso haja erro
+    if (w == -1) {
+      printf("Err: %i\n", errno);
+      shutdown(c->data_session, SHUT_RDWR);
+      close(client_s);
+      return "425 Can't open data connection.\n";
+    }
+    token = strtok(NULL, "\n");
+  }
+
+  // Fecha conexão
+  shutdown(c->data_session, SHUT_RDWR);
+  close(client_s);
+  c->data_session = -1;
+
+  return "226 Closing data connection.\n";
+}
 
 char *func_pwd(ConnectionStatus *c,char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));

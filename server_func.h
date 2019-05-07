@@ -41,9 +41,6 @@ char **split_words(char *m, char *limit);
 int hex_to_dec(char *hex, int n);
 char *dec_to_hex(int dec, int n);
 
-/* TRANSFERÊNCIA DE DADOS */
-void send_data(ConnectionStatus *c, char *mensagem);
-
 /* CONTROLE DE ACESSO */
 char *func_user(ConnectionStatus *c, char *message);
 char *func_pass(ConnectionStatus *c, char *message);
