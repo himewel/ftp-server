@@ -47,17 +47,17 @@ void send_data(ConnectionStatus *c, char *mensagem) {
     char *aux;
     sprintf(aux, "%s\r\n", token);
     w = write(c->data_session, aux, strlen(aux));
-    printf("%s\n", token);
+    // Caso haja erro
+    if (w == -1) {
+      int erro = errno;
+      printf("%i\n", erro);
+      mes = "425 Can't open data connection.\n";
+      write(c->control_session, mes, strlen(mes));
+      return;
+    }
     token = strtok(NULL, "\n");
   }
-  // Caso haja erro
-  if (w == -1) {
-    int erro = errno;
-    printf("%i\n", erro);
-    mes = "425 Can't open data connection.\n";
-    write(c->control_session, mes, strlen(mes));
-    return;
-  }
+
   // Fecha conexão
   mes = "226 Closing data connection.\n";
   printf("%s",mes);
