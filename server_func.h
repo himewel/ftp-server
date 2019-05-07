@@ -14,7 +14,7 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 
-#define PORTNUM 8080
+#define PORTNUM 2300
 #define MAX_ARGUMENTS 5
 #define STRING_SIZE 200
 #define BUF_SIZE 8192

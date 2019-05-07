@@ -567,18 +567,45 @@ char *func_retr(ConnectionStatus *c, char *message) {
     int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
     // Envia arquivo
     char buf[BUF_SIZE];
-    int tam_to_read = 0;
-    int file = open(filename,O_RDONLY);
-    for (int i = buffer.st_size; i > 0; i -= tam_to_read) {
-      tam_to_read = (i < BUF_SIZE) ? i : BUF_SIZE;
-      printf("%i\n",i);
-      read(file, buf, tam_to_read);
-      printf("%s", buf);
+    FILE *file = fopen(filename,"r");
+    int flag = 0;
+
+    for (int i = 0; i < buffer.st_size; i++) {
+      char caractere = fgetc(file);
+      // Corrige CRLF com \r\n
+      if (caractere == '\n') {
+        sprintf(buf, "%s\r", buf);
+        // Confere tamanho do buffer
+        if (strlen(buf) < BUF_SIZE) {
+          sprintf(buf, "%s\n", buf);
+        } else {
+          flag = 1;
+        }
+      } else {
+        // Insere caractere comum
+        sprintf(buf, "%s%c", buf,caractere);
+      }
+
+      // Incrementa contador do buffer
+      if (strlen(buf) == BUF_SIZE) {
+        // Envia dados quando buffer cheio
+        printf("Buffer cheio, descarregando...\n");
+        write(c->data_session, buf, strlen(buf));
+        if (flag == 1) {
+          strcpy(buf,"\n");
+        } else {
+          strcpy(buf, "\0");
+        }
+      }
+    }
+    if (strlen(buf) > 0) {
+      printf("Buffer final não cheio, descarregando...\n");
       write(c->data_session, buf, strlen(buf));
     }
     // Fecha conexão
     shutdown(c->data_session, SHUT_RDWR);
     close(client_s);
+    fclose(file);
 
     return "250 Requested file action okay, completed.\n";
   } else {
