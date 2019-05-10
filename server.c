@@ -1,6 +1,11 @@
 #include "server_func.h"
 
-int main (void) {
+int main (int argc, char *argv[]) {
+  if(argc <= 1) {
+    printf("Informe a interface de rede para o servidor.\n");
+    return 0;
+  }
+
   int s, client_s, addr_len;
   int flag_connection;
   char msg[STRING_SIZE];
@@ -12,8 +17,12 @@ int main (void) {
   // Determina que o endereço é IPv4
   ifr.ifr_addr.sa_family = AF_INET;
   // Pega endereço na placa de rede
-  strncpy(ifr.ifr_name, "wlp2s0", IFNAMSIZ-1);
-  ioctl(fd, SIOCGIFADDR, &ifr);
+  strncpy(ifr.ifr_name, argv[1], IFNAMSIZ-1);
+  s = ioctl(fd, SIOCGIFADDR, &ifr);
+  if (s == -1) {
+    printf("  Interface selecionada não está disponível\n");
+    return 0;
+  }
   close(fd);
   char *address = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
   printf("%s\n", address);
@@ -124,8 +133,8 @@ int main (void) {
       write(client_s, msg, strlen(msg));
     }
     free(c);
+    shutdown(client_s, SHUT_RDWR);
   }
-
 
   return 0;
 }
