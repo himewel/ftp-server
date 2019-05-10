@@ -561,12 +561,23 @@ char *func_retr(ConnectionStatus *c, char *message) {
     write(c->control_session, mes, strlen(mes));
 
     // Conecta com cliente
-    struct sockaddr_in dest;
-    bzero(&dest, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(c->data_session_port);
-    dest.sin_addr.s_addr = inet_addr(c->server_address);
-    int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+    int client_s;
+    if (c->modo_passivo == 0) {
+      struct sockaddr_in dest;
+      bzero(&dest, sizeof(dest));
+      dest.sin_family = AF_INET;
+      dest.sin_port = htons(c->data_session_port);
+      dest.sin_addr.s_addr = inet_addr(c->server_address);
+      client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+    } else {
+      struct sockaddr_in self, client;
+      int addr_len = sizeof(client);
+      bzero(&self, sizeof(self));
+      self.sin_family = AF_INET;
+      self.sin_port = htons(c->data_session_port);
+      self.sin_addr.s_addr = inet_addr(c->server_address);
+      client_s = accept(c->data_session, (struct sockaddr*)&client, &addr_len);
+    }
     // Envia arquivo
     char buf[BUF_SIZE];
     FILE *file = fopen(filename,"r");
@@ -592,7 +603,11 @@ char *func_retr(ConnectionStatus *c, char *message) {
       if (strlen(buf) == BUF_SIZE) {
         // Envia dados quando buffer cheio
         printf("Buffer cheio, descarregando...\n");
-        write(c->data_session, buf, strlen(buf));
+        if (c->modo_passivo == 0) {
+          write(c->data_session, buf, strlen(buf));
+        } else {
+          write(client_s, buf, strlen(buf));
+        }
         if (flag == 1) {
           strcpy(buf,"\n");
         } else {
@@ -602,7 +617,11 @@ char *func_retr(ConnectionStatus *c, char *message) {
     }
     if (strlen(buf) > 0) {
       printf("Buffer final não cheio, descarregando...\n");
-      write(c->data_session, buf, strlen(buf));
+      if (c->modo_passivo == 0) {
+        write(c->data_session, buf, strlen(buf));
+      } else {
+        write(client_s, buf, strlen(buf));
+      }
     }
     // Fecha conexão
     shutdown(c->data_session, SHUT_RDWR);
@@ -664,10 +683,11 @@ char *func_stor(ConnectionStatus *c, char *message) {
     while (1) {
       if (client_s == 0) {
         char *read_message = (char*) malloc(8*sizeof(char));
+        int j;
         if (c->modo_passivo == 0) {
-          int j = read(c->data_session, read_message, sizeof(read_message));
+          j = read(c->data_session, read_message, sizeof(read_message));
         } else {
-          int j = read(client_s, read_message, sizeof(read_message));
+          j = read(client_s, read_message, sizeof(read_message));
         }
         if (j == 0) {
           break;
