@@ -637,13 +637,23 @@ char *func_stor(ConnectionStatus *c, char *message) {
   stat(filename, &buffer);
   if (!S_ISREG(buffer.st_mode)) {
     // Conecta com cliente
-    struct sockaddr_in dest;
-    bzero(&dest, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(c->data_session_port);
-    dest.sin_addr.s_addr = inet_addr(c->server_address);
-    int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
-
+    int client_s;
+    if (c->modo_passivo == 0) {
+      struct sockaddr_in dest;
+      bzero(&dest, sizeof(dest));
+      dest.sin_family = AF_INET;
+      dest.sin_port = htons(c->data_session_port);
+      dest.sin_addr.s_addr = inet_addr(c->server_address);
+      int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+    } else {
+      struct sockaddr_in self, client;
+      int addr_len = sizeof(client);
+      bzero(&self, sizeof(self));
+      self.sin_family = AF_INET;
+      self.sin_port = htons(c->data_session_port);
+      self.sin_addr.s_addr = inet_addr(c->server_address);
+      client_s = accept(c->data_session, (struct sockaddr*)&client, &addr_len);
+    }
     // Informa início da transferência
     mes = "125 Data connection already open; transfer starting.\n";
     printf("%s", mes);
@@ -654,7 +664,11 @@ char *func_stor(ConnectionStatus *c, char *message) {
     while (1) {
       if (client_s == 0) {
         char *read_message = (char*) malloc(8*sizeof(char));
-        int j = read(c->data_session, read_message,sizeof(read_message));
+        if (c->modo_passivo == 0) {
+          int j = read(c->data_session, read_message, sizeof(read_message));
+        } else {
+          int j = read(client_s, read_message, sizeof(read_message));
+        }
         if (j == 0) {
           break;
         }
