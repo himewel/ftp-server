@@ -11,6 +11,7 @@ ConnectionStatus *initializeStatus() {
   c->data_session_port = -1;
   c->control_session = -1;
   c->type = 'A';
+  c->modo_passivo = 0;
 
   return c;
 };
@@ -174,14 +175,15 @@ char *func_cwd(ConnectionStatus *c, char *message) {
   char consult[STRING_SIZE] = "";
   if (args[1][0] == '/') {
     // Vai para raiz do servidor
-    args[1][strlen(args[1]) - 1] = '/';
+    sprintf(args[1], "%s/",args[1]);
     strcpy(consult, args[1]);
   } else {
     // Concatena destino com caminho atual
     strcpy(consult, c->actual_path);
-    args[1][strlen(args[1]) - 1] = '/';
-    strcat(consult, args[1]);
+    sprintf(consult, "%s%s/",consult,args[1]);
+    //strcat(consult, args[1]);
   }
+  printf("%s\n",consult);
 
   // Consulta existência do diretório
   DIR *dir = opendir(consult);
@@ -283,7 +285,7 @@ char *func_type(ConnectionStatus *c, char *message) {
 char *func_pasv(ConnectionStatus *c, char *message) {
   // define porta para conexão aleatória
   srand(time(NULL));
-  int porta = (rand() % 65035) + 500;
+  int porta = (rand() % 65035) + 15500;
   printf("%i\n",porta);
 
   // Configuração do socket
@@ -309,18 +311,18 @@ char *func_pasv(ConnectionStatus *c, char *message) {
   // Atualiza status da conexão
   c->data_session_port = porta;
   c->data_session = s;
+  c->modo_passivo = 1;
 
   // Formata mensagem para decodificação do cliente
-  char *hex = dec_to_hex(porta, 4);
+  char hex[4];
+  sprintf(hex, "%X", porta);
   printf("%s\n",hex);
-  char ini[2];
-  char fim[2];
-  ini[0] = hex[0];
-  ini[1] = hex[1];
-  fim[0] = hex[2];
-  fim[1] = hex[3];
-  int a = hex_to_dec(ini, 2);
-  int b = hex_to_dec(fim, 2);
+  char ini[3];
+  char fim[3];
+  sprintf(ini, "%c%c",hex[0],hex[1]);
+  sprintf(fim, "%c%c",hex[2],hex[3]);
+  int a = (int)strtol(ini, NULL, 16);
+  int b = (int)strtol(fim, NULL, 16);
   printf("%i %i\n",a,b);
 
   char *return_message = (char *) malloc(STRING_SIZE*sizeof(char));
@@ -328,7 +330,7 @@ char *func_pasv(ConnectionStatus *c, char *message) {
   strcpy(ip,c->server_address);
   char **ip_aux = split_words(ip, ".");
   printf("%s %s %s %s\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3]);
-  sprintf(return_message, "227 (%s,%s,%s,%s,%i,%i).\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3],a,b);
+  sprintf(return_message, "227 Entering Passive Mode (%s,%s,%s,%s,%i,%i).\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3],a,b);
 
   return return_message;
 }
@@ -390,13 +392,25 @@ char *func_list(ConnectionStatus *c,char *message) {
   }
   pclose(arquivos);
 
-  // Conecta com cliente
-  struct sockaddr_in dest;
-  bzero(&dest, sizeof(dest));
-  dest.sin_family = AF_INET;
-  dest.sin_port = htons(c->data_session_port);
-  dest.sin_addr.s_addr = inet_addr(c->server_address);
-  int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+  int client_s;
+  if (c->modo_passivo == 0) {
+    // Conecta com cliente
+    struct sockaddr_in dest;
+    bzero(&dest, sizeof(dest));
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(c->data_session_port);
+    dest.sin_addr.s_addr = inet_addr(c->server_address);
+    client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+  } else {
+    struct sockaddr_in self, client;
+    int addr_len = sizeof(client);
+    bzero(&self, sizeof(self));
+    self.sin_family = AF_INET;
+    self.sin_port = htons(c->data_session_port);
+    self.sin_addr.s_addr = inet_addr(c->server_address);
+    client_s = accept(c->data_session, (struct sockaddr*)&client, &addr_len);
+  }
+
   if (client_s == -1) {
     printf("Err: %i\n", errno);
     return "425 Can't open data connection.\n";
@@ -407,14 +421,17 @@ char *func_list(ConnectionStatus *c,char *message) {
   printf("%s", mes);
   write(c->control_session, mes, strlen(mes));
 
-  printf("%s\n", return_message);
-
   // Substitue \n por \r\n e envia para o cliente
   char *token = strtok(return_message, "\n");
   while (token != NULL) {
-    char *aux;
+    char aux[STRING_SIZE];
     sprintf(aux, "%s\r\n", token);
-    w = write(c->data_session, aux, strlen(aux));
+    printf("%s",aux);
+    if (c->modo_passivo == 0) {
+      w = write(c->data_session, aux, strlen(aux));
+    } else {
+      w = write(client_s, aux, strlen(aux));
+    }
     // Caso haja erro
     if (w == -1) {
       printf("Err: %i\n", errno);

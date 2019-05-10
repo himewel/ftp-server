@@ -27,6 +27,7 @@ struct connection_status {
   int control_session;
   char type;
   char *server_address;
+  int modo_passivo;
 };
 
 typedef struct connection_status ConnectionStatus;
