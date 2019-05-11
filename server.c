@@ -10,13 +10,13 @@ int main (int argc, char *argv[]) {
   int flag_connection;
   char msg[STRING_SIZE];
 
-  // Detectando IP da rede sem fio
+  // Detectando IP
   int fd;
   struct ifreq ifr;
   fd = socket(AF_INET, SOCK_DGRAM, 0);
   // Determina que o endereço é IPv4
   ifr.ifr_addr.sa_family = AF_INET;
-  // Pega endereço na placa de rede
+  // Pega endereço na interface de rede selecionada
   strncpy(ifr.ifr_name, argv[1], IFNAMSIZ-1);
   s = ioctl(fd, SIOCGIFADDR, &ifr);
   if (s == -1) {
@@ -133,7 +133,7 @@ int main (int argc, char *argv[]) {
       write(client_s, msg, strlen(msg));
     }
     free(c);
-    shutdown(client_s, SHUT_RDWR);
+    close(client_s);
   }
 
   return 0;

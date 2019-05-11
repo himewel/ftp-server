@@ -264,6 +264,7 @@ char *func_port(ConnectionStatus *c, char *message) {
   // Atualiza status da conexão
   c->data_session_port = porta;
   c->data_session = s;
+  c->modo_passivo = 0;
   printf("%i\n",porta);
 
   return "200 Command okay.\n";
@@ -284,8 +285,8 @@ char *func_type(ConnectionStatus *c, char *message) {
 
 char *func_pasv(ConnectionStatus *c, char *message) {
   // define porta para conexão aleatória
-  srand(time(NULL));
-  int porta = (rand() % 65035) + 15500;
+  //srand(time(NULL));
+  int porta = (rand() % 50035) + 15500;
   printf("%i\n",porta);
 
   // Configuração do socket
