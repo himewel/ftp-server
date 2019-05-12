@@ -472,17 +472,22 @@ char *func_list(ConnectionStatus *c,char *message) {
     // Caso haja erro
     if (w == -1) {
       printf("Err: %i\n", errno);
-      shutdown(c->data_session, SHUT_RDWR);
-      close(client_s);
+      if (c->modo_passivo == 0) {
+        close(c->data_session);
+      } else {
+        close(client_s);
+      }
       return "425 Can't open data connection.\n";
     }
     token = strtok(NULL, "\n");
   }
 
   // Fecha conexão
-  shutdown(c->data_session, SHUT_RDWR);
-  close(client_s);
-  c->data_session = -1;
+  if (c->modo_passivo == 0) {
+    close(c->data_session);
+  } else {
+    close(client_s);
+  }
 
   return "226 Closing data connection.\n";
 }
@@ -661,8 +666,11 @@ char *func_retr(ConnectionStatus *c, char *message) {
       }
     }
     // Fecha conexão
-    shutdown(c->data_session, SHUT_RDWR);
-    close(client_s);
+    if (c->modo_passivo == 0) {
+      close(c->data_session);
+    } else {
+      close(client_s);
+    }
     fclose(file);
 
     return "250 Requested file action okay, completed.\n";
@@ -700,7 +708,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
       dest.sin_family = AF_INET;
       dest.sin_port = htons(c->data_session_port);
       dest.sin_addr.s_addr = inet_addr(c->server_address);
-      int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+      client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
     } else {
       struct sockaddr_in self, client;
       int addr_len = sizeof(client);
@@ -742,9 +750,11 @@ char *func_stor(ConnectionStatus *c, char *message) {
     mes = "226 Closing data connection.\n";
     printf("%s",mes);
     write(c->data_session, mes, strlen(mes));
-    shutdown(c->data_session, SHUT_RDWR);
-    close(client_s);
-    c->data_session = -1;
+    if (c->modo_passivo == 0) {
+      close(c->data_session);
+    } else {
+      close(client_s);
+    }
 
     return "250 Requested file action okay, completed.\n";
   } else {
