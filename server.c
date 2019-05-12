@@ -12,7 +12,7 @@ char *getIPaddress(char *interface) {
   strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
   s = ioctl(fd, SIOCGIFADDR, &ifr);
   if (s == -1) {
-    printf("Falha: Interface selecionada não está disponível.\n");
+    printf("Erro: Interface selecionada não está disponível.\n");
     return "";
   }
   close(fd);
@@ -24,7 +24,7 @@ int createSocketToServe(char *address, int port) {
   struct sockaddr_in self;
   bzero(&self, sizeof(self));
   self.sin_family = AF_INET;
-  self.sin_port = htons(PORTNUM);
+  self.sin_port = htons(port);
   self.sin_addr.s_addr = inet_addr(address);
 
   int s = socket(AF_INET, SOCK_STREAM, 0);
@@ -39,7 +39,7 @@ int main (int argc, char *argv[]) {
   char *interface;
   if (argc > 1) {
     interface = argv[1];
-    printf("Info: Pegando endereço da interface selecionada: %s.\n",interface);
+    printf("Info: Interface selecionada: %s.\n",interface);
   } else {
     printf("Info: Interface não informada, utilizando interface padrão: lo.\n");
     interface = "lo";
@@ -48,18 +48,36 @@ int main (int argc, char *argv[]) {
   // Pega endereço do servidor
   char *address = getIPaddress(interface);
   if (strcmp(address, "") == 0) {
-    printf("Info: Utilizando interface padrão: lo\n");
+    printf("Info: Utilizando interface padrão: lo.\n");
     interface = "lo";
     address = getIPaddress(interface);
+  } else {
+    printf("Info: Utilizando interface selecionada.\n");
+  }
+
+  // Pega porta informada ou padrão
+  int port;
+  if (argc > 2) {
+    port = (int)strtol(argv[2], NULL, 10);;
+    printf("Info: Porta selecionada: %i.\n",port);
+    if (port <= 1024) {
+      printf("Info: Sem permissão para utilização da porta selecionada.\n");
+      port = PORTNUM;
+      printf("Info: Porta padrão selecionada: %i.\n",port);
+    }
+  } else {
+    port = PORTNUM;
+    printf("Info: Porta padrão selecionada: %i.\n",port);
   }
 
   // Cria socket e fica em loop até sua criação ser bem sucedida
-  int s = createSocketToServe(address, PORTNUM);
+  int s = createSocketToServe(address, port);
   while (s == -1) {
-    printf("Falha: Aguardando 5s para nova tentativa de criação do scket...\n");
+    printf("Erro: Aguardando 5s para nova tentativa de criação do socket...\n");
     sleep(5);
-    s = createSocketToServe(address, PORTNUM);
+    s = createSocketToServe(address, port);
   }
+  printf("Info: Socket criado com sucesso.\n");
 
   int client_s;
   int flag_connection;
@@ -67,7 +85,7 @@ int main (int argc, char *argv[]) {
   struct sockaddr_in client;
   int addr_len = sizeof(client);
 
-  printf("Rodando em %s:%i\n", address, PORTNUM);
+  printf("Info: Rodando servidor em %s:%i\n", address, port);
 
   while (1) {
     // Recebe conexão
