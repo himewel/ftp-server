@@ -25,7 +25,6 @@ int main (int argc, char *argv[]) {
   }
   close(fd);
   char *address = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-  printf("%s\n", address);
 
   // Configuração do socket para receber solicitações de qualquer endereço
   struct sockaddr_in self, client;
@@ -35,31 +34,34 @@ int main (int argc, char *argv[]) {
   self.sin_port = htons(PORTNUM);
   self.sin_addr.s_addr = inet_addr(address);
 
-  // Reserva socket
-  s = socket(AF_INET, SOCK_STREAM, 0);
-  if (bind(s, (struct sockaddr*)&self, sizeof(self)) == -1) {
-    printf("  Falha na criação do socket\n");
-    return 0;
-  }
+  s = -1;
+  int b = -1;
+  int l = -1;
 
-  // Ativa escuta de conexões, máximo de 20
-  if (listen(s, 4) == -1) {
-    printf("  Falha na escuta das conexões\n");
-    return 0;
-  }
+  do {
+    s = socket(AF_INET, SOCK_STREAM, 0);
+    b = bind(s, (struct sockaddr*)&self, sizeof(self));
+    l = listen(s, 4);
+    if (s < 0 || b < 0 || l < 0) {
+      printf("Falha: Aguardando 5s para nova tentativa...\n");
+      sleep(5);
+    }
+  } while (s < 0 || b < 0 || l < 0);
+
+  printf("Rodando em %s:%i\n", address, PORTNUM);
 
   while (1) {
     // Recebe conexão
+    client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     while (client_s < 1) {
-      client_s = accept(s, (struct sockaddr*)&client, &addr_len);
       if (client_s == 0) {
         printf("Erro: %i\n", errno);
         strcpy(msg, "421 Service not available, closing control connection.\n");
         printf("%s",msg);
         printf("--------------------------------------------------------------------------------\n");
         write(client_s, msg, strlen(msg));
-        close(client_s);
       }
+      client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     }
 
     printf("client_s %i\n", client_s);
