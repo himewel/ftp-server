@@ -704,13 +704,18 @@ char *func_stor(ConnectionStatus *c, char *message) {
     } else {
       client_s = createConnectionToAccept(c->data_session);
     }
+
+    if (client_s == -1) {
+      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+      return "425 Can't open data connection.\n";
+    }
     // Informa início da transferência
-    mes = "125 Data connection already open; transfer starting.\n";
+    mes = "150 File status okay; about to open data connection.\n";
     printf("%s", mes);
     write(c->control_session, mes, strlen(mes));
 
     // Recebe mensagens do cliente
-    FILE *f = fopen(filename, "w");
+    FILE *file = fopen(filename, "w");
     while (1) {
       if (client_s == 0) {
         char *read_message = (char*) malloc(8*sizeof(char));
@@ -724,13 +729,13 @@ char *func_stor(ConnectionStatus *c, char *message) {
           break;
         }
         printf("%s\n", read_message);
-        fprintf(f, "%s",read_message);
+        fprintf(file, "%s",read_message);
         free(read_message);
       } else {
         break;
       }
     }
-    fclose(f);
+    fclose(file);
 
     // Fecha conexão
     mes = "226 Closing data connection.\n";
