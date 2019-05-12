@@ -6,7 +6,7 @@ int main (int argc, char *argv[]) {
     return 0;
   }
 
-  int s, client_s, addr_len;
+  int s, client_s;
   int flag_connection;
   char msg[STRING_SIZE];
 
@@ -29,7 +29,7 @@ int main (int argc, char *argv[]) {
 
   // Configuração do socket para receber solicitações de qualquer endereço
   struct sockaddr_in self, client;
-  addr_len = sizeof(client);
+  socklen_t addr_len = sizeof(client);
   bzero(&self, sizeof(self));
   self.sin_family = AF_INET;
   self.sin_port = htons(PORTNUM);
@@ -37,22 +37,32 @@ int main (int argc, char *argv[]) {
 
   // Reserva socket
   s = socket(AF_INET, SOCK_STREAM, 0);
-  int reuse = 1;
-  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
   if (bind(s, (struct sockaddr*)&self, sizeof(self)) == -1) {
     printf("  Falha na criação do socket\n");
     return 0;
   }
 
   // Ativa escuta de conexões, máximo de 20
-  if (listen(s, 5) == -1) {
+  if (listen(s, 4) == -1) {
     printf("  Falha na escuta das conexões\n");
     return 0;
   }
 
   while (1) {
     // Recebe conexão
-    client_s = accept(s, (struct sockaddr*)&client, &addr_len);
+    while (client_s < 1) {
+      client_s = accept(s, (struct sockaddr*)&client, &addr_len);
+      if (client_s == 0) {
+        printf("Erro: %i\n", errno);
+        strcpy(msg, "421 Service not available, closing control connection.\n");
+        printf("%s",msg);
+        printf("--------------------------------------------------------------------------------\n");
+        write(client_s, msg, strlen(msg));
+        close(client_s);
+      }
+    }
+
+    printf("client_s %i\n", client_s);
     strcpy(msg, "220 Service ready for new user.\n");
     write(client_s, msg, strlen(msg));
 
@@ -62,7 +72,7 @@ int main (int argc, char *argv[]) {
     c->server_address = address;
 
     // Caso erro na conexão ou mensagem solicitando encerramento
-    while (client_s != -1 && c->connection_ok == 1) {
+    while (c->connection_ok == 1) {
       printf("%s",msg);
       printf("--------------------------------------------------------------------------------\n");
       bzero(msg, STRING_SIZE);
@@ -133,7 +143,9 @@ int main (int argc, char *argv[]) {
       write(client_s, msg, strlen(msg));
     }
     free(c);
+    shutdown(client_s, SHUT_RDWR);
     close(client_s);
+    client_s = -1;
   }
 
   return 0;
