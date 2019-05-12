@@ -42,6 +42,8 @@ typedef struct connection_status ConnectionStatus;
 ConnectionStatus *initializeStatus();
 char *getIPaddress(char *interface);
 int createSocketToServe(char *address, int port);
+int createConnectionToAccept(int socket);
+int createConnectionToConnect(int socket, char* address, int port);
 
 /* DECODIFICAÇÃO DO COMANDO */
 int decode_message (char *command);

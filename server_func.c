@@ -52,6 +52,24 @@ int createSocketToServe(char *address, int port) {
   return (b < 0 || l < 0 || s <0) ? -1 : s;
 }
 
+int createConnectionToAccept(int socket) {
+  struct sockaddr_in client;
+  int addr_len = sizeof(client);
+  int client_s = accept(socket, (struct sockaddr*)&client, &addr_len);
+  return client_s;
+}
+
+int createConnectionToConnect(int socket, char* address, int port) {
+  // Conecta com cliente
+  struct sockaddr_in dest;
+  bzero(&dest, sizeof(dest));
+  dest.sin_family = AF_INET;
+  dest.sin_port = htons(port);
+  dest.sin_addr.s_addr = inet_addr(address);
+  int client_s = connect(socket, (struct sockaddr*)&dest, sizeof(dest));
+  return client_s;
+}
+
 /* DECODIFICAÇÃO DO COMANDO */
 
 int decode_message (char *command) {
@@ -432,20 +450,9 @@ char *func_list(ConnectionStatus *c,char *message) {
   int client_s;
   if (c->modo_passivo == 0) {
     // Conecta com cliente
-    struct sockaddr_in dest;
-    bzero(&dest, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(c->data_session_port);
-    dest.sin_addr.s_addr = inet_addr(c->server_address);
-    client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+    client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
   } else {
-    struct sockaddr_in self, client;
-    int addr_len = sizeof(client);
-    bzero(&self, sizeof(self));
-    self.sin_family = AF_INET;
-    self.sin_port = htons(c->data_session_port);
-    self.sin_addr.s_addr = inet_addr(c->server_address);
-    client_s = accept(c->data_session, (struct sockaddr*)&client, &addr_len);
+    client_s = createConnectionToAccept(c->data_session);
   }
 
   if (client_s == -1) {
@@ -454,7 +461,7 @@ char *func_list(ConnectionStatus *c,char *message) {
   }
 
   // Informa início da transferência
-  char *mes = "125 Data connection already open; transfer starting.\n";
+  char *mes = "150 File status okay; about to open data connection.\n";
   printf("%s", mes);
   write(c->control_session, mes, strlen(mes));
 
@@ -605,23 +612,13 @@ char *func_retr(ConnectionStatus *c, char *message) {
     // Conecta com cliente
     int client_s;
     if (c->modo_passivo == 0) {
-      struct sockaddr_in dest;
-      bzero(&dest, sizeof(dest));
-      dest.sin_family = AF_INET;
-      dest.sin_port = htons(c->data_session_port);
-      dest.sin_addr.s_addr = inet_addr(c->server_address);
-      client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+      client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
     } else {
-      struct sockaddr_in self, client;
-      int addr_len = sizeof(client);
-      bzero(&self, sizeof(self));
-      self.sin_family = AF_INET;
-      self.sin_port = htons(c->data_session_port);
-      self.sin_addr.s_addr = inet_addr(c->server_address);
-      client_s = accept(c->data_session, (struct sockaddr*)&client, &addr_len);
+      client_s = createConnectionToAccept(c->data_session);
     }
     // Envia arquivo
     char buf[BUF_SIZE];
+    strcpy(buf,"\0");
     FILE *file = fopen(filename,"r");
     int flag = 0;
 
@@ -703,20 +700,9 @@ char *func_stor(ConnectionStatus *c, char *message) {
     // Conecta com cliente
     int client_s;
     if (c->modo_passivo == 0) {
-      struct sockaddr_in dest;
-      bzero(&dest, sizeof(dest));
-      dest.sin_family = AF_INET;
-      dest.sin_port = htons(c->data_session_port);
-      dest.sin_addr.s_addr = inet_addr(c->server_address);
-      client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+      client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
     } else {
-      struct sockaddr_in self, client;
-      int addr_len = sizeof(client);
-      bzero(&self, sizeof(self));
-      self.sin_family = AF_INET;
-      self.sin_port = htons(c->data_session_port);
-      self.sin_addr.s_addr = inet_addr(c->server_address);
-      client_s = accept(c->data_session, (struct sockaddr*)&client, &addr_len);
+      client_s = createConnectionToAccept(c->data_session);
     }
     // Informa início da transferência
     mes = "125 Data connection already open; transfer starting.\n";
