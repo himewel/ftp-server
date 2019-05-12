@@ -12,7 +12,7 @@ char *getIPaddress(char *interface) {
   strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
   s = ioctl(fd, SIOCGIFADDR, &ifr);
   if (s == -1) {
-    printf("Interface selecionada não está disponível\n");
+    printf("Falha: Interface selecionada não está disponível.\n");
     return "";
   }
   close(fd);
@@ -36,15 +36,21 @@ int createSocketToServe(char *address, int port) {
 
 int main (int argc, char *argv[]) {
   // Confere a existência do argumento
-  if(argc <= 1) {
-    printf("Falha: Informe a interface de rede para o servidor.\n");
-    return 0;
+  char *interface;
+  if (argc > 1) {
+    interface = argv[1];
+    printf("Info: Pegando endereço da interface selecionada: %s.\n",interface);
+  } else {
+    printf("Info: Interface não informada, utilizando interface padrão: lo.\n");
+    interface = "lo";
   }
 
   // Pega endereço do servidor
-  char *address = getIPaddress(argv[1]);
+  char *address = getIPaddress(interface);
   if (strcmp(address, "") == 0) {
-    return 0;
+    printf("Info: Utilizando interface padrão: lo\n");
+    interface = "lo";
+    address = getIPaddress(interface);
   }
 
   // Cria socket e fica em loop até sua criação ser bem sucedida
