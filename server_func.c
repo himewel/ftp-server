@@ -284,7 +284,7 @@ char *func_quit(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   c->connection_ok = 0;
   return_message = "221 Service closing control connection.\n";
-  printf("%s",return_message);
+  printf("%s%c[1mSend: %s%s",GRN,27,NRM,return_message);
   printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   return return_message;
 }
@@ -310,8 +310,7 @@ char *func_port(ConnectionStatus *c, char *message) {
   s = socket(AF_INET, SOCK_STREAM, 0);
 
   if (s == -1) {
-    int erro = errno;
-    printf("Errno: %i\n", erro);
+    printf("%s%c[1mErro: Porta não disponível, nova tentativa. Errno: %i%s\n",RED,27,errno,NRM);
     return "421 Service not available, closing control connection.\n";
   }
 
@@ -319,7 +318,7 @@ char *func_port(ConnectionStatus *c, char *message) {
   c->data_session_port = porta;
   c->data_session = s;
   c->modo_passivo = 0;
-  printf("%i\n",porta);
+  printf("%s%c[1mInfo: %sPorta selecionada pelo %c[1mcliente%c[0m para conexão de dados: %s%c[1m%i%s.\n",YEL,27,NRM,27,27,BLU,27,porta,NRM);
 
   return "200 Command okay.\n";
 }
@@ -339,28 +338,17 @@ char *func_type(ConnectionStatus *c, char *message) {
 
 char *func_pasv(ConnectionStatus *c, char *message) {
   // define porta para conexão aleatória
-  //srand(time(NULL));
-  int porta = (rand() % 50035) + 15500;
-  printf("%i\n",porta);
+  int s = -1;
+  int porta;
+  while (s == -1) {
+    porta = (rand() % 50035) + 15500;
+    printf("%s%c[1mInfo: %sPorta selecionada pelo %c[1mservidor%c[0m para conexão de dados: %s%c[1m%i%s.\n",YEL,27,NRM,27,27,BLU,27,porta,NRM);
 
-  // Configuração do socket
-  int client_s, s;
-  struct sockaddr_in dest, client;
-  int addr_len = sizeof(client);
-  bzero(&dest, sizeof(dest));
-  dest.sin_family = AF_INET;
-  dest.sin_port = htons(porta);
-  dest.sin_addr.s_addr = inet_addr(c->server_address);
-
-  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
-  s = socket(AF_INET, SOCK_STREAM, 0);
-  bind(s, (struct sockaddr*)&dest, sizeof(dest));
-  listen(s, 5);
-
-  if (s == -1) {
-    int erro = errno;
-    printf("Errno: %i\n", erro);
-    return "421 Service not available, closing control connection.\n";
+    // Configuração do socket
+    s = createSocketToServe(c->server_address,porta);
+    if (s == -1) {
+      printf("%s%c[1mErro: Porta não disponível, nova tentativa. Errno: %i%s\n",RED,27,errno,NRM);
+    }
   }
 
   // Atualiza status da conexão
@@ -371,20 +359,17 @@ char *func_pasv(ConnectionStatus *c, char *message) {
   // Formata mensagem para decodificação do cliente
   char hex[4];
   sprintf(hex, "%X", porta);
-  printf("%s\n",hex);
   char ini[3];
   char fim[3];
   sprintf(ini, "%c%c",hex[0],hex[1]);
   sprintf(fim, "%c%c",hex[2],hex[3]);
   int a = (int)strtol(ini, NULL, 16);
   int b = (int)strtol(fim, NULL, 16);
-  printf("%i %i\n",a,b);
 
   char *return_message = (char *) malloc(STRING_SIZE*sizeof(char));
   char ip[STRING_SIZE];
   strcpy(ip,c->server_address);
   char **ip_aux = split_words(ip, ".");
-  printf("%s %s %s %s\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3]);
   sprintf(return_message, "227 Entering Passive Mode (%s,%s,%s,%s,%i,%i).\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3],a,b);
 
   return return_message;
@@ -530,7 +515,7 @@ char *func_mkd(ConnectionStatus *c, char *message) {
     strcat(shell_command, args[1]);
   }
 
-  printf("%s\n", shell_command);
+  printf("%s%c[1mInfo: %sDiretório selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,shell_command,NRM);
 
   int err = mkdir(shell_command, 0775);
   // Verifica se houve erro
@@ -564,7 +549,7 @@ char *func_rmd(ConnectionStatus *c, char *message) {
     strcpy(path, c->actual_path);
     strcat(path, args[1]);
   }
-  printf("%s\n",path);
+  printf("%s%c[1mInfo: %sDiretório selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,path,NRM);
   // Verifica se houve erro
   if (rmdir(path) == 0) {
     return_message = "250 Requested file action okay, completed.\n";
@@ -575,9 +560,9 @@ char *func_rmd(ConnectionStatus *c, char *message) {
 }
 
 char *func_noop(ConnectionStatus *c, char *message) {
-    char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-    return_message = "200 OK.\n";
-    return return_message;
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  return_message = "200 OK.\n";
+  return return_message;
 }
 
 char *func_syst(ConnectionStatus *c, char *message) {
@@ -589,7 +574,7 @@ char *func_syst(ConnectionStatus *c, char *message) {
 char *func_retr(ConnectionStatus *c, char *message) {
   // Recolhe nome do arquivo selecionado
   char **args = split_words(message, " ");
-  printf("%s\n", args[1]);
+  printf("%s%c[1mInfo: %sArquivo selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,args[1],NRM);
 
   // Define se é um path ou está no diretório atual
   char filename[STRING_SIZE];
@@ -607,6 +592,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
   if (!S_ISDIR(buffer.st_mode)) {
     // Informando abertura da conexão
     char *mes = "150 File status okay; about to open data connection.\n";
+    printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
     write(c->control_session, mes, strlen(mes));
 
     // Conecta com cliente
@@ -615,6 +601,12 @@ char *func_retr(ConnectionStatus *c, char *message) {
       client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
     } else {
       client_s = createConnectionToAccept(c->data_session);
+    }
+    if (client_s == -1) {
+      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+      char *mes = "425 Can't open data connection.\n";
+      printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
+      return mes;
     }
     // Envia arquivo
     char buf[BUF_SIZE];
@@ -641,7 +633,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
       // Incrementa contador do buffer
       if (strlen(buf) == BUF_SIZE) {
         // Envia dados quando buffer cheio
-        printf("Buffer cheio, descarregando...\n");
+        printf("%s%c[1mInfo: %sBuffer cheio, descarregando...\n",YEL,27,NRM);
         if (c->modo_passivo == 0) {
           write(c->data_session, buf, strlen(buf));
         } else {
@@ -655,7 +647,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
       }
     }
     if (strlen(buf) > 0) {
-      printf("Buffer final não cheio, descarregando...\n");
+      printf("%s%c[1mInfo: %sBuffer final não cheio, descarregando...\n",YEL,27,NRM);
       if (c->modo_passivo == 0) {
         write(c->data_session, buf, strlen(buf));
       } else {
@@ -679,7 +671,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
 char *func_stor(ConnectionStatus *c, char *message) {
   // Recolhe nome do arquivo selecionado
   char **args = split_words(message, " ");
-  printf("%s\n", args[1]);
+  printf("%s%c[1mInfo: %sArquivo selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,args[1],NRM);
 
   // Define se é um path ou está no diretório atual
   char filename[STRING_SIZE];
@@ -711,7 +703,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
     }
     // Informa início da transferência
     mes = "150 File status okay; about to open data connection.\n";
-    printf("%s", mes);
+    printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
     write(c->control_session, mes, strlen(mes));
 
     // Recebe mensagens do cliente
@@ -728,7 +720,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
         if (j == 0) {
           break;
         }
-        printf("%s\n", read_message);
+        printf("%s%c[1mInfo: %sRecebendo pacote...\n",YEL,27,NRM);
         fprintf(file, "%s",read_message);
         free(read_message);
       } else {
@@ -739,7 +731,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
 
     // Fecha conexão
     mes = "226 Closing data connection.\n";
-    printf("%s",mes);
+    printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
     write(c->data_session, mes, strlen(mes));
     if (c->modo_passivo == 0) {
       close(c->data_session);

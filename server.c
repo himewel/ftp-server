@@ -79,12 +79,12 @@ int main (int argc, char *argv[]) {
 
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (c->connection_ok == 1) {
-      printf("%s",msg);
+      printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
       printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
       bzero(msg, STRING_SIZE);
       // Decodifica mensagem e trata
       read(client_s, msg, sizeof(msg));
-      printf("%s", msg);
+      printf("%s%c[1mRecv: %s%s",BLU,27,NRM,msg);
       int message = decode_message(msg);
       // Trata o comando recebido
       switch (message) {
