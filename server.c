@@ -1,52 +1,65 @@
 #include "server_func.h"
 
-int main (int argc, char *argv[]) {
-  if(argc <= 1) {
-    printf("Informe a interface de rede para o servidor.\n");
-    return 0;
-  }
-
-  int s, client_s;
-  int flag_connection;
-  char msg[STRING_SIZE];
-
+char *getIPaddress(char *interface) {
   // Detectando IP
   int fd;
+  int s;
   struct ifreq ifr;
   fd = socket(AF_INET, SOCK_DGRAM, 0);
   // Determina que o endereço é IPv4
   ifr.ifr_addr.sa_family = AF_INET;
   // Pega endereço na interface de rede selecionada
-  strncpy(ifr.ifr_name, argv[1], IFNAMSIZ-1);
+  strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
   s = ioctl(fd, SIOCGIFADDR, &ifr);
   if (s == -1) {
-    printf("  Interface selecionada não está disponível\n");
-    return 0;
+    printf("Interface selecionada não está disponível\n");
+    return "";
   }
   close(fd);
-  char *address = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+  return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+}
 
-  // Configuração do socket para receber solicitações de qualquer endereço
-  struct sockaddr_in self, client;
-  socklen_t addr_len = sizeof(client);
+int createSocketToServe(char *address, int port) {
+  // Configuração do socket para receber solicitações
+  struct sockaddr_in self;
   bzero(&self, sizeof(self));
   self.sin_family = AF_INET;
   self.sin_port = htons(PORTNUM);
   self.sin_addr.s_addr = inet_addr(address);
 
-  s = -1;
-  int b = -1;
-  int l = -1;
+  int s = socket(AF_INET, SOCK_STREAM, 0);
+  int b = bind(s, (struct sockaddr*)&self, sizeof(self));
+  int l = listen(s, 4);
 
-  do {
-    s = socket(AF_INET, SOCK_STREAM, 0);
-    b = bind(s, (struct sockaddr*)&self, sizeof(self));
-    l = listen(s, 4);
-    if (s < 0 || b < 0 || l < 0) {
-      printf("Falha: Aguardando 5s para nova tentativa...\n");
-      sleep(5);
-    }
-  } while (s < 0 || b < 0 || l < 0);
+  return (b < 0 || l < 0 || s <0) ? -1 : s;
+}
+
+int main (int argc, char *argv[]) {
+  // Confere a existência do argumento
+  if(argc <= 1) {
+    printf("Falha: Informe a interface de rede para o servidor.\n");
+    return 0;
+  }
+
+  // Pega endereço do servidor
+  char *address = getIPaddress(argv[1]);
+  if (strcmp(address, "") == 0) {
+    return 0;
+  }
+
+  // Cria socket e fica em loop até sua criação ser bem sucedida
+  int s = createSocketToServe(address, PORTNUM);
+  while (s == -1) {
+    printf("Falha: Aguardando 5s para nova tentativa de criação do scket...\n");
+    sleep(5);
+    s = createSocketToServe(address, PORTNUM);
+  }
+
+  int client_s;
+  int flag_connection;
+  char msg[STRING_SIZE];
+  struct sockaddr_in client;
+  int addr_len = sizeof(client);
 
   printf("Rodando em %s:%i\n", address, PORTNUM);
 
