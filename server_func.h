@@ -19,11 +19,11 @@
 #define STRING_SIZE 200
 #define BUF_SIZE 8192
 
-#define KYEL "\x1B[33m"
-#define KRED  "\x1B[31m"
-#define KNRM  "\x1B[0m"
-#define KBLU  "\x1B[34m"
-#define KGRN  "\x1B[32m"
+#define YEL "\x1B[33m"
+#define RED  "\x1B[31m"
+#define NRM  "\x1B[0m"
+#define BLU  "\x1B[34m"
+#define GRN  "\x1B[32m"
 
 struct connection_status {
   char actual_path[STRING_SIZE];
