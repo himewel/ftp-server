@@ -12,7 +12,7 @@ char *getIPaddress(char *interface) {
   strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
   s = ioctl(fd, SIOCGIFADDR, &ifr);
   if (s == -1) {
-    printf("Erro: Interface selecionada não está disponível.\n");
+    printf("%sErro: %sInterface selecionada não está disponível.\n",KRED,KNRM);
     return "";
   }
   close(fd);
@@ -39,55 +39,55 @@ int main (int argc, char *argv[]) {
   char *interface;
   if (argc > 1) {
     interface = argv[1];
-    printf("Info: Interface selecionada: %s.\n",interface);
+    printf("%sInfo: %sInterface selecionada: %s%s%s.\n",KYEL,KNRM,KBLU,interface,KNRM);
   } else {
-    printf("Info: Interface não informada, utilizando interface padrão: lo.\n");
+    printf("%sInfo: %sInterface não informada, utilizando interface padrão: %slo%s.\n",KYEL,KNRM,KBLU,KNRM);
     interface = "lo";
   }
 
   // Pega endereço do servidor
   char *address = getIPaddress(interface);
   if (strcmp(address, "") == 0) {
-    printf("Info: Utilizando interface padrão: lo.\n");
+    printf("%sInfo: %sUtilizando interface padrão: %slo%s.\n",KYEL,KNRM,KBLU,KNRM);
     interface = "lo";
     address = getIPaddress(interface);
   } else {
-    printf("Info: Utilizando interface selecionada.\n");
+    printf("%sInfo: %sUtilizando interface selecionada.\n",KYEL,KNRM);
   }
 
   // Pega porta informada ou padrão
   int port;
   if (argc > 2) {
     port = (int)strtol(argv[2], NULL, 10);;
-    printf("Info: Porta selecionada: %i.\n",port);
+    printf("%sInfo: %sPorta selecionada: %s%i%s.\n",KYEL,KNRM,KBLU,port,KNRM);
     if (port <= 1024) {
-      printf("Info: Sem permissão para utilização da porta selecionada.\n");
+      printf("%sErro: %sSem permissão para utilização da porta selecionada.\n",KRED,KNRM);
       port = PORTNUM;
-      printf("Info: Porta padrão selecionada: %i.\n",port);
+      printf("%sInfo: %sPorta padrão selecionada: %s%i%s.\n",KYEL,KNRM,KBLU,port,KNRM);
     }
   } else {
     port = PORTNUM;
-    printf("Info: Porta padrão selecionada: %i.\n",port);
+    printf("%sInfo: %sPorta padrão selecionada: %s%i%s.\n",KYEL,KNRM,KBLU,port,KNRM);
   }
 
   // Cria socket e fica em loop até sua criação ser bem sucedida
   int s = createSocketToServe(address, port);
   while (s == -1) {
-    printf("Erro: Aguardando 5s para nova tentativa de criação do socket...\n");
+    printf("%sErro: Aguardando 5s para nova tentativa de criação do socket...\n",KRED);
     sleep(5);
     s = createSocketToServe(address, port);
   }
-  printf("Info: Socket criado com sucesso.\n");
+  printf("%sInfo: %sSocket criado com sucesso.\n",KYEL,KNRM);
 
   int client_s;
   char msg[STRING_SIZE];
   struct sockaddr_in client;
   int addr_len = sizeof(client);
 
-  printf("Info: Rodando servidor em %s:%i\n", address, port);
+  printf("%sInfo: %sRodando servidor em %s%s%s:%s%i%s.\n",KYEL,KNRM,KBLU, address,KNRM,KBLU, port,KNRM);
 
   while (1) {
-    printf("--------------------------------------------------------------------------------\n");
+    printf("%s--------------------------------------------------------------------------------%s\n",KGRN,KNRM);
     // Recebe conexão e garante que valor seja diferente de 0
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     while (client_s < 1) {
@@ -95,7 +95,7 @@ int main (int argc, char *argv[]) {
         printf("Erro: %i\n", errno);
         strcpy(msg, "421 Service not available, closing control connection.\n");
         printf("%s",msg);
-        printf("--------------------------------------------------------------------------------\n");
+        printf("%s--------------------------------------------------------------------------------%s\n",KGRN,KNRM);
         write(client_s, msg, strlen(msg));
       }
       client_s = accept(s, (struct sockaddr*)&client, &addr_len);
@@ -113,7 +113,7 @@ int main (int argc, char *argv[]) {
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (c->connection_ok == 1) {
       printf("%s",msg);
-      printf("--------------------------------------------------------------------------------\n");
+      printf("%s--------------------------------------------------------------------------------%s\n",KGRN,KNRM);
       bzero(msg, STRING_SIZE);
       // Decodifica mensagem e trata
       int r = read(client_s, msg, sizeof(msg));
