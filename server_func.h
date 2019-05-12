@@ -38,7 +38,10 @@ struct connection_status {
 
 typedef struct connection_status ConnectionStatus;
 
+/* INICIALIZAÇÃO DA CONEXÃO */
 ConnectionStatus *initializeStatus();
+char *getIPaddress(char *interface);
+int createSocketToServe(char *address, int port);
 
 /* DECODIFICAÇÃO DO COMANDO */
 int decode_message (char *command);

@@ -1,39 +1,5 @@
 #include "server_func.h"
 
-char *getIPaddress(char *interface) {
-  // Detectando IP
-  int fd;
-  int s;
-  struct ifreq ifr;
-  fd = socket(AF_INET, SOCK_DGRAM, 0);
-  // Determina que o endereço é IPv4
-  ifr.ifr_addr.sa_family = AF_INET;
-  // Pega endereço na interface de rede selecionada
-  strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
-  s = ioctl(fd, SIOCGIFADDR, &ifr);
-  if (s == -1) {
-    printf("%s%c[1mErro: Interface selecionada não está disponível.%s\n",RED,27,NRM);
-    return "";
-  }
-  close(fd);
-  return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-}
-
-int createSocketToServe(char *address, int port) {
-  // Configuração do socket para receber solicitações
-  struct sockaddr_in self;
-  bzero(&self, sizeof(self));
-  self.sin_family = AF_INET;
-  self.sin_port = htons(port);
-  self.sin_addr.s_addr = inet_addr(address);
-
-  int s = socket(AF_INET, SOCK_STREAM, 0);
-  int b = bind(s, (struct sockaddr*)&self, sizeof(self));
-  int l = listen(s, 4);
-
-  return (b < 0 || l < 0 || s <0) ? -1 : s;
-}
-
 int main (int argc, char *argv[]) {
   printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   // Confere a existência do argumento
@@ -85,31 +51,31 @@ int main (int argc, char *argv[]) {
   struct sockaddr_in client;
   int addr_len = sizeof(client);
 
-  printf("%s%c[1mInfo: %sRodando servidor em %s%c[1m%s:%i%s.\n",YEL,27,NRM,BLU,27,address,port,NRM);
-
+  printf("%s%c[1mInfo: %sRodando servidor em: %s%c[1m%s:%i%s.\n",YEL,27,NRM,BLU,27,address,port,NRM);
   while (1) {
     printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
     // Recebe conexão e garante que valor seja diferente de 0
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
-    while (client_s < 1) {
-      if (client_s == 0) {
-        printf("%s%c[1mErro: %i\n",RED,27,errno);
-        strcpy(msg, "421 Service not available, closing control connection.\n");
-        printf("%s",msg);
-        printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
-        write(client_s, msg, strlen(msg));
-      }
-      client_s = accept(s, (struct sockaddr*)&client, &addr_len);
-    }
-
-    printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
-    strcpy(msg, "220 Service ready for new user.\n");
-    write(client_s, msg, strlen(msg));
 
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();
     c->control_session = client_s;
     c->server_address = address;
+
+    if (client_s == 0) {
+      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+      strcpy(msg, "421 Service not available, closing control connection.\n");
+      printf("%s",msg);
+      printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
+      write(client_s, msg, strlen(msg));
+      c->connection_ok = -1;
+      continue;
+    } else {
+      strcpy(msg, "220 Service ready for new user.\n");
+      write(client_s, msg, strlen(msg));
+    }
+
+    printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
 
     // Caso erro na conexão ou mensagem solicitando encerramento
     while (c->connection_ok == 1) {
@@ -117,13 +83,7 @@ int main (int argc, char *argv[]) {
       printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
       bzero(msg, STRING_SIZE);
       // Decodifica mensagem e trata
-      int r = read(client_s, msg, sizeof(msg));
-      if (r == -1) {
-        printf("Conexão perdida com cliente: %i\n", errno);
-        strcpy(msg, "421 Service not available, closing control connection.\n");
-        write(client_s, msg, strlen(msg) + 1);
-        break;
-      }
+      read(client_s, msg, sizeof(msg));
       printf("%s", msg);
       int message = decode_message(msg);
       // Trata o comando recebido

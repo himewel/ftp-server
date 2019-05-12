@@ -1,5 +1,7 @@
 #include "server_func.h"
 
+/* Inicialização da conexão */
+
 ConnectionStatus *initializeStatus() {
   ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
   // Configura diretório atual
@@ -15,6 +17,40 @@ ConnectionStatus *initializeStatus() {
 
   return c;
 };
+
+char *getIPaddress(char *interface) {
+  // Detectando IP
+  int fd;
+  int s;
+  struct ifreq ifr;
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  // Determina que o endereço é IPv4
+  ifr.ifr_addr.sa_family = AF_INET;
+  // Pega endereço na interface de rede selecionada
+  strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
+  s = ioctl(fd, SIOCGIFADDR, &ifr);
+  if (s == -1) {
+    printf("%s%c[1mErro: Interface selecionada não está disponível.%s\n",RED,27,NRM);
+    return "";
+  }
+  close(fd);
+  return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+}
+
+int createSocketToServe(char *address, int port) {
+  // Configuração do socket para receber solicitações
+  struct sockaddr_in self;
+  bzero(&self, sizeof(self));
+  self.sin_family = AF_INET;
+  self.sin_port = htons(port);
+  self.sin_addr.s_addr = inet_addr(address);
+
+  int s = socket(AF_INET, SOCK_STREAM, 0);
+  int b = bind(s, (struct sockaddr*)&self, sizeof(self));
+  int l = listen(s, 4);
+
+  return (b < 0 || l < 0 || s <0) ? -1 : s;
+}
 
 /* DECODIFICAÇÃO DO COMANDO */
 
@@ -231,7 +267,7 @@ char *func_quit(ConnectionStatus *c, char *message) {
   c->connection_ok = 0;
   return_message = "221 Service closing control connection.\n";
   printf("%s",return_message);
-  printf("--------------------------------------------------------------------------------\n");
+  printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   return return_message;
 }
 
