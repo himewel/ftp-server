@@ -80,7 +80,6 @@ int main (int argc, char *argv[]) {
   printf("Info: Socket criado com sucesso.\n");
 
   int client_s;
-  int flag_connection;
   char msg[STRING_SIZE];
   struct sockaddr_in client;
   int addr_len = sizeof(client);
@@ -88,7 +87,8 @@ int main (int argc, char *argv[]) {
   printf("Info: Rodando servidor em %s:%i\n", address, port);
 
   while (1) {
-    // Recebe conexão
+    printf("--------------------------------------------------------------------------------\n");
+    // Recebe conexão e garante que valor seja diferente de 0
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     while (client_s < 1) {
       if (client_s == 0) {
@@ -101,7 +101,7 @@ int main (int argc, char *argv[]) {
       client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     }
 
-    printf("client_s %i\n", client_s);
+    printf("Info: Conexão estabelecida com: %s:%d.\n", inet_ntoa(client.sin_addr), (int) ntohs(client.sin_port));
     strcpy(msg, "220 Service ready for new user.\n");
     write(client_s, msg, strlen(msg));
 
