@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <signal.h>
 
 #define PORTNUM 2300
 #define MAX_ARGUMENTS 5

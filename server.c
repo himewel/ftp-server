@@ -1,25 +1,34 @@
 #include "server_func.h"
 
+int client_s;
+
+void signal_handler(int sign) {
+  close(client_s);
+  printf("\n%s%c[1mInfo: %sFechando conexão.\n",YEL,27,NRM);
+  exit(1);
+}
+
 int main (int argc, char *argv[]) {
   printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   // Confere a existência do argumento
   char *interface;
+  // Pega endereço do servidor
+  char address[32];
   if (argc > 1) {
     interface = argv[1];
     printf("%s%c[1mInfo: %sInterface selecionada: %c[1m%s%s%s.\n",YEL,27,NRM,27,BLU,interface,NRM);
+    sprintf(address,"%s",getIPaddress(interface));
+    if (strcmp(address, "") == 0) {
+      printf("%s%c[1mInfo: %sUtilizando interface padrão: %s%c[1mlo%s.\n",YEL,27,NRM,BLU,27,NRM);
+      interface = "lo";
+      sprintf(address,"%s",getIPaddress(interface));
+    } else {
+      printf("%s%c[1mInfo: %sUtilizando interface selecionada.\n",YEL,27,NRM);
+    }
   } else {
     printf("%s%c[1mInfo: %sInterface não informada, utilizando interface padrão: %s%c[1mlo%s.\n",YEL,27,NRM,BLU,27,NRM);
     interface = "lo";
-  }
-
-  // Pega endereço do servidor
-  char *address = getIPaddress(interface);
-  if (strcmp(address, "") == 0) {
-    printf("%s%c[1mInfo: %sUtilizando interface padrão: %s%c[1mlo%s.\n",YEL,27,NRM,BLU,27,NRM);
-    interface = "lo";
-    address = getIPaddress(interface);
-  } else {
-    printf("%s%c[1mInfo: %sUtilizando interface selecionada.\n",YEL,27,NRM);
+    sprintf(address,"%s",getIPaddress(interface));
   }
 
   // Pega porta informada ou padrão
@@ -46,7 +55,6 @@ int main (int argc, char *argv[]) {
   }
   printf("%s%c[1mInfo: %sSocket criado com %c[1msucesso%c[0m.\n",YEL,27,NRM,27,27);
 
-  int client_s;
   char msg[STRING_SIZE];
   struct sockaddr_in client;
   int addr_len = sizeof(client);
@@ -56,6 +64,7 @@ int main (int argc, char *argv[]) {
     printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
     // Recebe conexão e garante que valor seja diferente de 0
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
+    signal(SIGINT, signal_handler);
 
     // Struct que mantém estado da conexão
     ConnectionStatus *c = initializeStatus();

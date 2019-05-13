@@ -392,7 +392,6 @@ char *func_list(ConnectionStatus *c,char *message) {
   // caso o cliente tenha setado uma pasta especifica
   // faz com que os erros sejam escritos na menssagem caso ocorra
   sprintf(shell_command, "dir %s 2>&1",path);
-  printf("%s\n", shell_command);
 
   //chama o comando no sistema e salva em um arquivo
   arquivos = popen(shell_command, "r");
@@ -405,7 +404,7 @@ char *func_list(ConnectionStatus *c,char *message) {
   // pegando as 4 primeiras letras da menssagem pois se deu erro no dir vai exibir dir:
   if (strncmp(return_message, "dir:", 4) == 0){
     pclose(arquivos);
-    return "550 Path not found\n";
+    return "550 Path not found.\n";
   }
 
   // a menssagem de retorno possui um \n no final entao para podermos comparalas
@@ -416,18 +415,17 @@ char *func_list(ConnectionStatus *c,char *message) {
     sprintf(shell_command, "stat ");
     strcat(shell_command,c->actual_path);
     sprintf(shell_command, "%s%s",shell_command,path);
-    printf("%s\n",shell_command);
 
     arquivos = popen(shell_command,"r");
     //converte o arquivo para string
     for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++) {
       return_message[i] = ch;
     }
-    printf("%s\n",return_message);
+
     // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
     // deveremos retornar uma menssagem de erro
     if (strncmp(return_message, "stat:", 5) == 0) {
-      return "550 File not found\n";
+      return "550 File not found.\n";
     }
   }
   pclose(arquivos);
@@ -441,13 +439,13 @@ char *func_list(ConnectionStatus *c,char *message) {
   }
 
   if (client_s == -1) {
-    printf("Err: %i\n", errno);
+    printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
     return "425 Can't open data connection.\n";
   }
 
   // Informa início da transferência
   char *mes = "150 File status okay; about to open data connection.\n";
-  printf("%s", mes);
+  printf("%s%c[1mSend: %s%s", GRN,27,NRM,mes);
   write(c->control_session, mes, strlen(mes));
 
   // Substitue \n por \r\n e envia para o cliente
@@ -463,7 +461,7 @@ char *func_list(ConnectionStatus *c,char *message) {
     }
     // Caso haja erro
     if (w == -1) {
-      printf("Err: %i\n", errno);
+      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
       if (c->modo_passivo == 0) {
         close(c->data_session);
       } else {
@@ -588,8 +586,8 @@ char *func_retr(ConnectionStatus *c, char *message) {
 
   // Checa se é um arquivo ou um diretório
   struct stat buffer;
-  stat(filename, &buffer);
-  if (!S_ISDIR(buffer.st_mode)) {
+  int err = stat(filename, &buffer);
+  if (!S_ISDIR(buffer.st_mode) && err != -1) {
     // Informando abertura da conexão
     char *mes = "150 File status okay; about to open data connection.\n";
     printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
@@ -604,7 +602,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
     }
     if (client_s == -1) {
       printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
-      char *mes = "425 Can't open data connection.\n";
+      mes = "425 Can't open data connection.\n";
       printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
       return mes;
     }
