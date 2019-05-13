@@ -237,7 +237,7 @@ char *func_cwd(ConnectionStatus *c, char *message) {
     sprintf(consult, "%s%s/",consult,args[1]);
     //strcat(consult, args[1]);
   }
-  printf("%s\n",consult);
+  printf("%s%c[1mInfo: %sDiretório selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,consult,NRM);
 
   // Consulta existência do diretório
   DIR *dir = opendir(consult);
@@ -381,7 +381,6 @@ char *func_pasv(ConnectionStatus *c, char *message) {
 char *func_list(ConnectionStatus *c,char *message) {
   chdir(c->actual_path);
   char shell_command[STRING_SIZE];
-  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   char **args = split_words(message, " ");
   char *path = args[1];
   FILE *arquivos;
@@ -391,44 +390,7 @@ char *func_list(ConnectionStatus *c,char *message) {
   // cria o sintax do comando dir
   // caso o cliente tenha setado uma pasta especifica
   // faz com que os erros sejam escritos na menssagem caso ocorra
-  sprintf(shell_command, "dir %s 2>&1",path);
-
-  //chama o comando no sistema e salva em um arquivo
-  arquivos = popen(shell_command, "r");
-
-  //converte o arquivo para string
-  for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++){
-    return_message[i] = ch;
-  }
-  // verificando se nao deu erro de diretorio nao encontrado
-  // pegando as 4 primeiras letras da menssagem pois se deu erro no dir vai exibir dir:
-  if (strncmp(return_message, "dir:", 4) == 0){
-    pclose(arquivos);
-    return "550 Path not found.\n";
-  }
-
-  // a menssagem de retorno possui um \n no final entao para podermos comparalas
-  strcat(path,"\n");
-  // tambem devemos checar a possibilidade de o cliente estar usando informacoes sobre um arquivo especifico
-  if (strcmp(return_message, path) == 0){
-    // caso ele esteja vamos utilizar o comando stat para retornar as informacoes
-    sprintf(shell_command, "stat ");
-    strcat(shell_command,c->actual_path);
-    sprintf(shell_command, "%s%s",shell_command,path);
-
-    arquivos = popen(shell_command,"r");
-    //converte o arquivo para string
-    for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++) {
-      return_message[i] = ch;
-    }
-
-    // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
-    // deveremos retornar uma menssagem de erro
-    if (strncmp(return_message, "stat:", 5) == 0) {
-      return "550 File not found.\n";
-    }
-  }
-  pclose(arquivos);
+  sprintf(shell_command, "ls -l %s",path);
 
   int client_s;
   if (c->modo_passivo == 0) {
@@ -443,21 +405,25 @@ char *func_list(ConnectionStatus *c,char *message) {
     return "425 Can't open data connection.\n";
   }
 
+  //chama o comando no sistema e salva em um arquivo
+  arquivos = popen(shell_command, "r");
+
   // Informa início da transferência
   char *mes = "150 File status okay; about to open data connection.\n";
   printf("%s%c[1mSend: %s%s", GRN,27,NRM,mes);
   write(c->control_session, mes, strlen(mes));
 
-  // Substitue \n por \r\n e envia para o cliente
-  char *token = strtok(return_message, "\n");
-  while (token != NULL) {
-    char aux[STRING_SIZE];
-    sprintf(aux, "%s\r\n", token);
-    printf("%s",aux);
+  char return_message[STRING_SIZE];
+  int i = 0;
+  while (fgets(return_message, sizeof(return_message),arquivos) != NULL) {
+    return_message[strlen(return_message)-1] = 0;
+    sprintf(return_message, "%s\r\n",return_message);
+    printf("%s",return_message);
+    i++;
     if (c->modo_passivo == 0) {
-      w = write(c->data_session, aux, strlen(aux));
+      w = write(c->data_session, return_message, strlen(return_message));
     } else {
-      w = write(client_s, aux, strlen(aux));
+      w = write(client_s, return_message, strlen(return_message));
     }
     // Caso haja erro
     if (w == -1) {
@@ -469,7 +435,15 @@ char *func_list(ConnectionStatus *c,char *message) {
       }
       return "425 Can't open data connection.\n";
     }
-    token = strtok(NULL, "\n");
+  }
+  pclose(arquivos);
+  if (i == 0) {
+    sprintf(return_message,"Nao foi possivel acessar '%s': Arquivo ou diretorio inexistente\r\n",path);
+    if (c->modo_passivo == 0) {
+      w = write(c->data_session, return_message, strlen(return_message));
+    } else {
+      w = write(client_s, return_message, strlen(return_message));
+    }
   }
 
   // Fecha conexão
