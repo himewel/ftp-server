@@ -6,39 +6,74 @@ Não há necessidade de verificar username, senha e permissões, ou seja, deve-s
 
 Especificação do protocolo segundo a RFC 959: https://www.ietf.org/rfc/rfc959.txt.
 
-Documentação das principais bibliotecas: [<uninstd.h>](http://pubs.opengroup.org/onlinepubs/007908799/xsh/unistd.h.html), [<sys/socket.h>](https://pubs.opengroup.org/onlinepubs/7908799/xns/syssocket.h.html).
-
 ## Instalação e execução
 
 Dê as permissões necessárias para execução do compile.sh e o execute.
 
 Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, evitando um "421 Service not available, closing control connection.".
 
-A porta padrão utilizada é a 2300, a conexão inicialmente é realizada pelo localhost.
+Se não especificado por argumentos, a interface padrão para início do servidor é a loopback, enquanto a porta para canal de controle é a 2300.
 
-Instruções adaptadas para o cliente FTP padrão: USER, PASS, CWD, CDUP, PWD, LIST, SYST, PORT, MKD, RMD, NOOP, RETR, STOR.
+Para especificação da interface e porta desejadas, deve se seguir a seguinte sintaxe:
 
-Necessitam de revisão: LIST, PASV, RETR.
+    ./compile.sh [interface de rede] [porta desejada]
+
+O script utiliza o GCC como compilador padrão seguindo o seguinte comando:
+
+    gcc server*.c -o server.out
+
+Caso se deseje utilizar diretamente o arquivo compilado:
+
+    ./server.out [interface de rede] [porta desejada]
+
+
+
+## Exemplos de utilização
+
+Utilizando script de compilação e especificando interface de rede e porta desejada:
+
+    $ ./compile.sh wlp2s0 2300
+    Compilando...
+    Gotcha!
+    --------------------------------------------------------------------------------
+    Info: Interface selecionada: wlp2s0.
+    Info: Utilizando interface selecionada.
+    Info: Porta selecionada: 2300.
+    Info: Socket criado com sucesso.
+    Info: Rodando servidor em: 192.168.1.166:2300.
+    --------------------------------------------------------------------------------
+
+Utilizando diretamente arquivo compila pelo gcc e executando servidor com interface e porta padrões:
+
+    $ ./server.out
+    --------------------------------------------------------------------------------
+    Info: Interface não informada, utilizando interface padrão: lo.
+    Info: Porta padrão selecionada: 2300.
+    Info: Socket criado com sucesso.
+    Info: Rodando servidor em: 127.0.0.1:2300.
+    --------------------------------------------------------------------------------
+
+
 
 ## Minimum Implementation
 
 In order to make FTP workable without needless error messages, the
 following minimum implementation is required for all servers:
 
-        TYPE - ASCII Non-print
-        MODE - Stream
-        STRUCTURE - File, Record
-        COMMANDS - USER, QUIT, PORT,
-              TYPE, MODE, STRU,
-                for the default values
-              RETR, STOR,
-              NOOP.
+    TYPE - ASCII Non-print
+    MODE - Stream
+    STRUCTURE - File, Record
+    COMMANDS - USER, QUIT, PORT,
+          TYPE, MODE, STRU,
+            for the default values
+          RETR, STOR,
+          NOOP.
 
 The default values for transfer parameters are:
 
-       TYPE - ASCII Non-print
-       MODE - Stream
-       STRU - File
+    TYPE - ASCII Non-print
+    MODE - Stream
+    STRU - File
 
 ## FTP commands
 
