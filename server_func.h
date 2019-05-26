@@ -10,13 +10,23 @@
 #include <dirent.h>
 #include <time.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <signal.h>
 #include <pthread.h>
 
 #define PORTNUM 2300
 #define MAX_ARGUMENTS 5
+#define MAX_CLIENTS 200
 #define STRING_SIZE 200
 #define BUF_SIZE 8192
-#define MAX_CLIENTS 20
+
+#define YEL "\x1B[33m"
+#define RED  "\x1B[31m"
+#define NRM  "\x1B[0m"
+#define BLU  "\x1B[34m"
+#define GRN  "\x1B[32m"
 
 struct connection_status {
   char actual_path[STRING_SIZE];
@@ -25,11 +35,18 @@ struct connection_status {
   int data_session_port;
   int control_session;
   char type;
+  char *server_address;
+  int modo_passivo;
 };
 
 typedef struct connection_status ConnectionStatus;
 
+/* INICIALIZAÇÃO DA CONEXÃO */
 ConnectionStatus *initializeStatus();
+char *getIPaddress(char *interface);
+int createSocketToServe(char *address, int port);
+int createConnectionToAccept(int socket);
+int createConnectionToConnect(int socket, char* address, int port);
 
 /* DECODIFICAÇÃO DO COMANDO */
 int decode_message (char *command);
@@ -38,9 +55,6 @@ int number_words(char **m);
 char **split_words(char *m, char *limit);
 int hex_to_dec(char *hex, int n);
 char *dec_to_hex(int dec, int n);
-
-/* TRANSFERÊNCIA DE DADOS */
-void send_data(ConnectionStatus *c, char *mensagem);
 
 /* CONTROLE DE ACESSO */
 char *func_user(ConnectionStatus *c, char *message);
@@ -59,10 +73,10 @@ char *func_list(ConnectionStatus *c, char *message);
 char *func_pwd(ConnectionStatus *c,char *message);
 char *func_mkd(ConnectionStatus *c,char *message);
 char *func_rmd(ConnectionStatus *c, char *message);
+
+void *multUser(void *_c);
+
 char *func_noop(ConnectionStatus *c, char *message);
 char *func_syst(ConnectionStatus *c, char *message);
 char *func_retr(ConnectionStatus *c, char *message);
 char *func_stor(ConnectionStatus *c, char *message);
-
-/* Thread*/
-void *multUser(void *client);

@@ -1,5 +1,7 @@
 #include "server_func.h"
 
+/* Inicialização da conexão */
+
 ConnectionStatus *initializeStatus() {
   ConnectionStatus *c = (ConnectionStatus*) malloc(sizeof(ConnectionStatus));
   // Configura diretório atual
@@ -9,63 +11,63 @@ ConnectionStatus *initializeStatus() {
   c->connection_ok = 1;
   c->data_session = -1;
   c->data_session_port = -1;
-  c->control_session = 0;
+  c->control_session = -1;
   c->type = 'A';
+  c->modo_passivo = 0;
+
   return c;
 };
 
-/* ENVIO DE DADOS */
+char *getIPaddress(char *interface) {
+  // Detectando IP
+  int fd;
+  int s;
+  struct ifreq ifr;
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  // Determina que o endereço é IPv4
+  ifr.ifr_addr.sa_family = AF_INET;
+  // Pega endereço na interface de rede selecionada
+  strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
+  s = ioctl(fd, SIOCGIFADDR, &ifr);
+  if (s == -1) {
+    printf("%s%c[1mErro: Interface selecionada não está disponível.%s\n",RED,27,NRM);
+    return "";
+  }
+  close(fd);
+  return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+}
 
-void send_data(ConnectionStatus *c, char *mensagem) {
-  int client_s;
-  int w;
-  char *mes;
+int createSocketToServe(char *address, int port) {
+  // Configuração do socket para receber solicitações
+  struct sockaddr_in self;
+  bzero(&self, sizeof(self));
+  self.sin_family = AF_INET;
+  self.sin_port = htons(port);
+  self.sin_addr.s_addr = inet_addr(address);
 
+  int s = socket(AF_INET, SOCK_STREAM, 0);
+  int b = bind(s, (struct sockaddr*)&self, sizeof(self));
+  int l = listen(s, 4);
+
+  return (b < 0 || l < 0 || s <0) ? -1 : s;
+}
+
+int createConnectionToAccept(int socket) {
+  struct sockaddr_in client;
+  int addr_len = sizeof(client);
+  int client_s = accept(socket, (struct sockaddr*)&client, &addr_len);
+  return client_s;
+}
+
+int createConnectionToConnect(int socket, char* address, int port) {
   // Conecta com cliente
   struct sockaddr_in dest;
   bzero(&dest, sizeof(dest));
   dest.sin_family = AF_INET;
-  dest.sin_port = htons(c->data_session_port);
-  dest.sin_addr.s_addr = INADDR_ANY;
-  client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
-  if (client_s == -1) {
-    int erro = errno;
-    printf("%i\n", erro);
-    mes = "425 Can't open data connection.\n";
-    write(c->control_session, mes, strlen(mes));
-    return;
-  }
-
-  // Informa início da transferência
-  mes = "125 Data connection already open; transfer starting.\n";
-  printf("%s", mes);
-  write(c->control_session, mes, strlen(mes));
-
-  // Substitue \n por \r\n e envia para o cliente
-  char *token = strtok(mensagem, "\n");
-  while (token != NULL) {
-    char *aux;
-    sprintf(aux, "%s\r\n", token);
-    w = write(c->data_session, aux, strlen(aux));
-    // Caso haja erro
-    if (w == -1) {
-      int erro = errno;
-      printf("%i\n", erro);
-      mes = "425 Can't open data connection.\n";
-      write(c->control_session, mes, strlen(mes));
-      return;
-    }
-    token = strtok(NULL, "\n");
-  }
-
-  // Fecha conexão
-  mes = "226 Closing data connection.\n";
-  printf("%s",mes);
-  write(c->control_session, mes, strlen(mes));
-  shutdown(c->data_session, SHUT_RDWR);
-  close(client_s);
-  c->data_session = -1;
-  return;
+  dest.sin_port = htons(port);
+  dest.sin_addr.s_addr = inet_addr(address);
+  int client_s = connect(socket, (struct sockaddr*)&dest, sizeof(dest));
+  return client_s;
 }
 
 /* DECODIFICAÇÃO DO COMANDO */
@@ -82,23 +84,25 @@ int decode_message (char *command) {
   } else if (strcmp(args[0],"pass") == 0) {
     code = 1;
   } else if (strcmp(args[0],"cdup") == 0) {
-    code = 4;
+    code = 2;
   } else if (strcmp(args[0],"quit") == 0) {
-    code = 7;
+    code = 3;
   } else if (strcmp(args[0],"list") == 0) {
-    code = 8;
+    code = 4;
   } else if (strcmp(args[0],"syst") == 0) {
-    code = 13;
+    code = 5;
   } else if (strcmp(args[0],"port") == 0) {
-    code = 14;
+    code = 6;
   } else if (strcmp(args[0],"type") == 0) {
-    code = 15;
+    code = 7;
   } else if (strcmp(args[0],"pasv") == 0) {
-    code = 16;
+    code = 8;
   } else if (strcmp(args[0],"retr") == 0) {
-    code = 17;
+    code = 9;
   } else if (strcmp(args[0],"stor") == 0) {
-    code = 18;
+    code = 10;
+  } else if (strcmp(args[0],"noop") == 0) {
+    code = 11;
   } else {
     code = -1000;
   }
@@ -106,13 +110,13 @@ int decode_message (char *command) {
   if (code == -1000) {
     args[0][3] = 0;
     if (strcmp(args[0],"cwd") == 0) {
-      code = 3;
+      code = 20;
     } else if (strcmp(args[0],"pwd") == 0) {
-      code = 9;
+      code = 21;
     } else if (strcmp(args[0],"mkd") == 0) {
-      code = 10;
+      code = 22;
     } else if (strcmp(args[0],"rmd") == 0) {
-      code = 11;
+      code = 23;
     }
   }
 
@@ -225,14 +229,15 @@ char *func_cwd(ConnectionStatus *c, char *message) {
   char consult[STRING_SIZE] = "";
   if (args[1][0] == '/') {
     // Vai para raiz do servidor
-    args[1][strlen(args[1]) - 1] = '/';
+    sprintf(args[1], "%s/",args[1]);
     strcpy(consult, args[1]);
   } else {
     // Concatena destino com caminho atual
     strcpy(consult, c->actual_path);
-    args[1][strlen(args[1]) - 1] = '/';
-    strcat(consult, args[1]);
+    sprintf(consult, "%s%s/",consult,args[1]);
+    //strcat(consult, args[1]);
   }
+  printf("%s%c[1mInfo: %sDiretório selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,consult,NRM);
 
   // Consulta existência do diretório
   DIR *dir = opendir(consult);
@@ -279,8 +284,8 @@ char *func_quit(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   c->connection_ok = 0;
   return_message = "221 Service closing control connection.\n";
-  printf("%s",return_message);
-  printf("--------------------------------------------------------------------------------\n");
+  printf("%s%c[1mSend: %s%s",GRN,27,NRM,return_message);
+  printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   return return_message;
 }
 
@@ -305,14 +310,15 @@ char *func_port(ConnectionStatus *c, char *message) {
   s = socket(AF_INET, SOCK_STREAM, 0);
 
   if (s == -1) {
-    int erro = errno;
-    printf("Errno: %i\n", erro);
+    printf("%s%c[1mErro: Porta não disponível, nova tentativa. Errno: %i%s\n",RED,27,errno,NRM);
     return "421 Service not available, closing control connection.\n";
   }
 
   // Atualiza status da conexão
   c->data_session_port = porta;
   c->data_session = s;
+  c->modo_passivo = 0;
+  printf("%s%c[1mInfo: %sPorta selecionada pelo %c[1mcliente%c[0m para conexão de dados: %s%c[1m%i%s.\n",YEL,27,NRM,27,27,BLU,27,porta,NRM);
 
   return "200 Command okay.\n";
 }
@@ -332,49 +338,39 @@ char *func_type(ConnectionStatus *c, char *message) {
 
 char *func_pasv(ConnectionStatus *c, char *message) {
   // define porta para conexão aleatória
-  srand(time(NULL));
-  int porta = (rand() % 65035) + 5000;
-  printf("%i\n",porta);
+  int s = -1;
+  int porta;
+  while (s == -1) {
+    porta = (rand() % 50035) + 15500;
+    printf("%s%c[1mInfo: %sPorta selecionada pelo %c[1mservidor%c[0m para conexão de dados: %s%c[1m%i%s.\n",YEL,27,NRM,27,27,BLU,27,porta,NRM);
 
-  // Configuração do socket
-  int client_s, s;
-  struct sockaddr_in dest, client;
-  int addr_len = sizeof(client);
-  bzero(&dest, sizeof(dest));
-  dest.sin_family = AF_INET;
-  dest.sin_port = htons(porta);
-  dest.sin_addr.s_addr = INADDR_ANY;
-
-  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
-  s = socket(AF_INET, SOCK_STREAM, 0);
-  bind(s, (struct sockaddr*)&dest, sizeof(dest));
-  listen(s, 5);
-
-  if (s == -1) {
-    int erro = errno;
-    printf("Errno: %i\n", erro);
-    return "421 Service not available, closing control connection.\n";
+    // Configuração do socket
+    s = createSocketToServe(c->server_address,porta);
+    if (s == -1) {
+      printf("%s%c[1mErro: Porta não disponível, nova tentativa. Errno: %i%s\n",RED,27,errno,NRM);
+    }
   }
 
   // Atualiza status da conexão
   c->data_session_port = porta;
   c->data_session = s;
+  c->modo_passivo = 1;
 
   // Formata mensagem para decodificação do cliente
-  char *hex = dec_to_hex(porta, 4);
-  printf("%s\n",hex);
-  char ini[2];
-  char fim[2];
-  ini[0] = hex[0];
-  ini[1] = hex[1];
-  fim[0] = hex[2];
-  fim[1] = hex[3];
-  int a = hex_to_dec(ini, 2);
-  int b = hex_to_dec(fim, 2);
-  printf("%i %i\n",a,b);
+  char hex[4];
+  sprintf(hex, "%X", porta);
+  char ini[3];
+  char fim[3];
+  sprintf(ini, "%c%c",hex[0],hex[1]);
+  sprintf(fim, "%c%c",hex[2],hex[3]);
+  int a = (int)strtol(ini, NULL, 16);
+  int b = (int)strtol(fim, NULL, 16);
 
   char *return_message = (char *) malloc(STRING_SIZE*sizeof(char));
-  sprintf(return_message, "227 Entering Passive Mode (192,168,1,166,%i,%i).\n",a,b);
+  char ip[STRING_SIZE];
+  strcpy(ip,c->server_address);
+  char **ip_aux = split_words(ip, ".");
+  sprintf(return_message, "227 Entering Passive Mode (%s,%s,%s,%s,%i,%i).\n",ip_aux[0],ip_aux[1],ip_aux[2],ip_aux[3],a,b);
 
   return return_message;
 }
@@ -384,63 +380,81 @@ char *func_pasv(ConnectionStatus *c, char *message) {
 // Lista arquivos da pasta especificada(comando LIST)
 char *func_list(ConnectionStatus *c,char *message) {
   chdir(c->actual_path);
-  char shell_command[STRING_SIZE] = "dir ";
-  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  char shell_command[STRING_SIZE];
   char **args = split_words(message, " ");
   char *path = args[1];
   FILE *arquivos;
+  int w;
   char ch;
 
   // cria o sintax do comando dir
   // caso o cliente tenha setado uma pasta especifica
-  strcat(shell_command, path);
-
   // faz com que os erros sejam escritos na menssagem caso ocorra
-  strcat(shell_command," 2>&1");
-  printf("%s \n", shell_command);
+  sprintf(shell_command, "ls -l %s",path);
+
+  int client_s;
+  if (c->modo_passivo == 0) {
+    // Conecta com cliente
+    client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
+  } else {
+    client_s = createConnectionToAccept(c->data_session);
+  }
+
+  if (client_s == -1) {
+    printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+    return "425 Can't open data connection.\n";
+  }
 
   //chama o comando no sistema e salva em um arquivo
   arquivos = popen(shell_command, "r");
 
-  //converte o arquivo para string
-  for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++){
-    return_message[i] = ch;
-  }
-  // verificando se nao deu erro de diretorio nao encontrado
-  // pegando as 4 primeiras letras da menssagem pois se deu erro no dir vai exibir dir:
-  if (strncmp(return_message, "dir:", 4) == 0){
-    pclose(arquivos);
-    return_message = "550 Path not found\n";
-    return return_message;
-  }
+  // Informa início da transferência
+  char *mes = "150 File status okay; about to open data connection.\n";
+  printf("%s%c[1mSend: %s%s", GRN,27,NRM,mes);
+  write(c->control_session, mes, strlen(mes));
 
-  // a menssagem de retorno possui um \n no final entao para podermos comparalas
-  strcat(path,"\n");
-  // tambem devemos checar a possibilidade de o cliente estar busando informacoes sobre um arquivo especifico
-  if (strcmp(return_message, path) == 0){
-    // caso ele esteja vamos utilizar o comando stat para retornar as informacoes
-    strcpy(shell_command, "stat ");
-    strcat(shell_command, c->actual_path);
-    strcat(shell_command, path);
-
-    arquivos = popen(shell_command,"r");
-    //converte o arquivo para string
-    for (int i = 0; ((ch = fgetc(arquivos)) != EOF); i++){
-      return_message[i] = ch;
+  char return_message[STRING_SIZE];
+  int i = 0;
+  while (fgets(return_message, sizeof(return_message),arquivos) != NULL) {
+    return_message[strlen(return_message)-1] = 0;
+    sprintf(return_message, "%s\r\n",return_message);
+    printf("%s",return_message);
+    i++;
+    if (c->modo_passivo == 0) {
+      w = write(c->data_session, return_message, strlen(return_message));
+    } else {
+      w = write(client_s, return_message, strlen(return_message));
     }
-    // se as primeiras 5 letras do nosso retorno for stat: quer dizer que nao e um arquivo
-    // deveremos retornar uma menssagem de erro
-    if (strncmp(return_message, "stat:", 5) == 0){
-      return_message = "550 File not found\n";
-      return return_message;
+    // Caso haja erro
+    if (w == -1) {
+      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+      if (c->modo_passivo == 0) {
+        close(c->data_session);
+      } else {
+        close(client_s);
+      }
+      return "425 Can't open data connection.\n";
     }
   }
-
-  send_data(c, return_message);
-
   pclose(arquivos);
-  return "";
+  if (i == 0) {
+    sprintf(return_message,"Nao foi possivel acessar '%s': Arquivo ou diretorio inexistente\r\n",path);
+    if (c->modo_passivo == 0) {
+      w = write(c->data_session, return_message, strlen(return_message));
+    } else {
+      w = write(client_s, return_message, strlen(return_message));
+    }
   }
+
+  // Fecha conexão
+  if (c->modo_passivo == 0) {
+    close(c->data_session);
+  } else {
+    close(client_s);
+  }
+
+  return "226 Closing data connection.\n";
+}
 
 char *func_pwd(ConnectionStatus *c,char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
@@ -473,7 +487,7 @@ char *func_mkd(ConnectionStatus *c, char *message) {
     strcat(shell_command, args[1]);
   }
 
-  printf("%s\n", shell_command);
+  printf("%s%c[1mInfo: %sDiretório selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,shell_command,NRM);
 
   int err = mkdir(shell_command, 0775);
   // Verifica se houve erro
@@ -507,7 +521,7 @@ char *func_rmd(ConnectionStatus *c, char *message) {
     strcpy(path, c->actual_path);
     strcat(path, args[1]);
   }
-  printf("%s\n",path);
+  printf("%s%c[1mInfo: %sDiretório selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,path,NRM);
   // Verifica se houve erro
   if (rmdir(path) == 0) {
     return_message = "250 Requested file action okay, completed.\n";
@@ -518,9 +532,9 @@ char *func_rmd(ConnectionStatus *c, char *message) {
 }
 
 char *func_noop(ConnectionStatus *c, char *message) {
-    char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
-    return_message = "200 OK.\n";
-    return return_message;
+  char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
+  return_message = "200 OK.\n";
+  return return_message;
 }
 
 char *func_syst(ConnectionStatus *c, char *message) {
@@ -532,7 +546,7 @@ char *func_syst(ConnectionStatus *c, char *message) {
 char *func_retr(ConnectionStatus *c, char *message) {
   // Recolhe nome do arquivo selecionado
   char **args = split_words(message, " ");
-  printf("%s\n", args[1]);
+  printf("%s%c[1mInfo: %sArquivo selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,args[1],NRM);
 
   // Define se é um path ou está no diretório atual
   char filename[STRING_SIZE];
@@ -546,33 +560,79 @@ char *func_retr(ConnectionStatus *c, char *message) {
 
   // Checa se é um arquivo ou um diretório
   struct stat buffer;
-  stat(filename, &buffer);
-  if (!S_ISDIR(buffer.st_mode)) {
+  int err = stat(filename, &buffer);
+  if (!S_ISDIR(buffer.st_mode) && err != -1) {
     // Informando abertura da conexão
     char *mes = "150 File status okay; about to open data connection.\n";
+    printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
     write(c->control_session, mes, strlen(mes));
 
     // Conecta com cliente
-    struct sockaddr_in dest;
-    bzero(&dest, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(c->data_session_port);
-    dest.sin_addr.s_addr = INADDR_ANY;
-    int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+    int client_s;
+    if (c->modo_passivo == 0) {
+      client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
+    } else {
+      client_s = createConnectionToAccept(c->data_session);
+    }
+    if (client_s == -1) {
+      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+      mes = "425 Can't open data connection.\n";
+      printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
+      return mes;
+    }
     // Envia arquivo
     char buf[BUF_SIZE];
-    int tam_to_read = 0;
-    int file = open(filename,O_RDONLY);
-    for (int i = buffer.st_size; i > 0; i -= tam_to_read) {
-      tam_to_read = (i < BUF_SIZE) ? i : BUF_SIZE;
-      printf("%i\n",i);
-      read(file, buf, tam_to_read);
-      printf("%s", buf);
-      write(c->data_session, buf, strlen(buf));
+    strcpy(buf,"\0");
+    FILE *file = fopen(filename,"r");
+    int flag = 0;
+
+    for (int i = 0; i < buffer.st_size; i++) {
+      char caractere = fgetc(file);
+      // Corrige CRLF com \r\n
+      if (caractere == '\n') {
+        sprintf(buf, "%s\r", buf);
+        // Confere tamanho do buffer
+        if (strlen(buf) < BUF_SIZE) {
+          sprintf(buf, "%s\n", buf);
+        } else {
+          flag = 1;
+        }
+      } else {
+        // Insere caractere comum
+        sprintf(buf, "%s%c", buf,caractere);
+      }
+
+      // Incrementa contador do buffer
+      if (strlen(buf) == BUF_SIZE) {
+        // Envia dados quando buffer cheio
+        printf("%s%c[1mInfo: %sBuffer cheio, descarregando...\n",YEL,27,NRM);
+        if (c->modo_passivo == 0) {
+          write(c->data_session, buf, strlen(buf));
+        } else {
+          write(client_s, buf, strlen(buf));
+        }
+        if (flag == 1) {
+          strcpy(buf,"\n");
+        } else {
+          strcpy(buf, "\0");
+        }
+      }
+    }
+    if (strlen(buf) > 0) {
+      printf("%s%c[1mInfo: %sBuffer final não cheio, descarregando...\n",YEL,27,NRM);
+      if (c->modo_passivo == 0) {
+        write(c->data_session, buf, strlen(buf));
+      } else {
+        write(client_s, buf, strlen(buf));
+      }
     }
     // Fecha conexão
-    shutdown(c->data_session, SHUT_RDWR);
-    close(client_s);
+    if (c->modo_passivo == 0) {
+      close(c->data_session);
+    } else {
+      close(client_s);
+    }
+    fclose(file);
 
     return "250 Requested file action okay, completed.\n";
   } else {
@@ -583,7 +643,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
 char *func_stor(ConnectionStatus *c, char *message) {
   // Recolhe nome do arquivo selecionado
   char **args = split_words(message, " ");
-  printf("%s\n", args[1]);
+  printf("%s%c[1mInfo: %sArquivo selecionado: %s%c[1m%s%s.\n",YEL,27,NRM,BLU,27,args[1],NRM);
 
   // Define se é um path ou está no diretório atual
   char filename[STRING_SIZE];
@@ -602,43 +662,54 @@ char *func_stor(ConnectionStatus *c, char *message) {
   stat(filename, &buffer);
   if (!S_ISREG(buffer.st_mode)) {
     // Conecta com cliente
-    struct sockaddr_in dest;
-    bzero(&dest, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(c->data_session_port);
-    dest.sin_addr.s_addr = INADDR_ANY;
-    int client_s = connect(c->data_session, (struct sockaddr*)&dest, sizeof(dest));
+    int client_s;
+    if (c->modo_passivo == 0) {
+      client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
+    } else {
+      client_s = createConnectionToAccept(c->data_session);
+    }
 
+    if (client_s == -1) {
+      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+      return "425 Can't open data connection.\n";
+    }
     // Informa início da transferência
-    mes = "125 Data connection already open; transfer starting.\n";
-    printf("%s", mes);
+    mes = "150 File status okay; about to open data connection.\n";
+    printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
     write(c->control_session, mes, strlen(mes));
 
     // Recebe mensagens do cliente
-    FILE *f = fopen(filename, "w");
+    FILE *file = fopen(filename, "w");
     while (1) {
       if (client_s == 0) {
         char *read_message = (char*) malloc(8*sizeof(char));
-        int j = read(c->data_session, read_message,sizeof(read_message));
+        int j;
+        if (c->modo_passivo == 0) {
+          j = read(c->data_session, read_message, sizeof(read_message));
+        } else {
+          j = read(client_s, read_message, sizeof(read_message));
+        }
         if (j == 0) {
           break;
         }
-        printf("%s\n", read_message);
-        fprintf(f, "%s",read_message);
+        printf("%s%c[1mInfo: %sRecebendo pacote...\n",YEL,27,NRM);
+        fprintf(file, "%s",read_message);
         free(read_message);
       } else {
         break;
       }
     }
-    fclose(f);
+    fclose(file);
 
     // Fecha conexão
     mes = "226 Closing data connection.\n";
-    printf("%s",mes);
+    printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
     write(c->data_session, mes, strlen(mes));
-    shutdown(c->data_session, SHUT_RDWR);
-    close(client_s);
-    c->data_session = -1;
+    if (c->modo_passivo == 0) {
+      close(c->data_session);
+    } else {
+      close(client_s);
+    }
 
     return "250 Requested file action okay, completed.\n";
   } else {
