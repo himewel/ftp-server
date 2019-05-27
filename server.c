@@ -10,6 +10,7 @@ void signal_handler(int sign) {
 
 int main (int argc, char *argv[]) {
 
+  // variáveis de thread
   pthread_t id[MAX_CLIENTS];
   int clients_conec = 0;
 
@@ -70,30 +71,32 @@ int main (int argc, char *argv[]) {
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     signal(SIGINT, signal_handler);
 
-    clients_conec = clients_conec ++;
+    if (clients_conec < MAX_CLIENTS){
+      clients_conec = clients_conec ++;
 
-      // Struct que mantém estado da conexão
-      ConnectionStatus *c = initializeStatus();
-      c->control_session = client_s;
-      c->server_address = address;
+        // Struct que mantém estado da conexão
+        ConnectionStatus *c = initializeStatus();
+        c->control_session = client_s;
+        c->server_address = address;
 
-      if (client_s == 0) {
-        printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
-        strcpy(msg, "421 Service not available, closing control connection.\n");
-        printf("%s",msg);
-        printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
-        write(client_s, msg, strlen(msg));
-        c->connection_ok = -1;
-        continue;
-      } else {
-        strcpy(msg, "220 Service ready for new user.\n");
-        write(client_s, msg, strlen(msg));
-      }
+        if (client_s == 0) {
+          printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+          strcpy(msg, "421 Service not available, closing control connection.\n");
+          printf("%s",msg);
+          printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
+          write(client_s, msg, strlen(msg));
+          c->connection_ok = -1;
+          continue;
+        } else {
+          strcpy(msg, "220 Service ready for new user.\n");
+          write(client_s, msg, strlen(msg));
+        }
 
-      printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
+        printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
 
-
-    pthread_create(&id[clients_conec],NULL,multUser,(void*)c);
+        // criando a thread
+        pthread_create(&id[clients_conec],NULL,multUser,(void*)c);
+    }
   }
 
   return 0;
@@ -103,6 +106,7 @@ void *multUser(void *_c){
 
     ConnectionStatus *c = (ConnectionStatus*) _c;
     char msg[STRING_SIZE];
+
   // Caso erro na conexão ou mensagem solicitando encerramento
   while (c->connection_ok == 1) {
     printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
@@ -173,5 +177,4 @@ void *multUser(void *_c){
   close(c->control_session);
   free(c);
   //client_s = -1;
-
 }
