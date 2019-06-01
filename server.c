@@ -109,6 +109,7 @@ int main (int argc, char *argv[]) {
         pthread_create(&id[clients_conec],NULL,multUser,(void*)c);
       }
     } else {
+      // Caso o número máximo de conexões tenha sido atingido
       printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
       printf("%s%c[1mInfo: %sNúmero máximo de conexões simultâneas atigido: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,MAX_CLIENTS,NRM);
       strcpy(msg, "421 Service not available, closing control connection.\n");

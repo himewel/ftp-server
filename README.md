@@ -12,11 +12,11 @@ Dê as permissões necessárias para execução do compile.sh e o execute.
 
 Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, evitando um "421 Service not available, closing control connection.".
 
-Se não especificado por argumentos, a interface padrão para início do servidor é a loopback, enquanto a porta para canal de controle é a 2300.
+Se não especificado por argumentos, a interface padrão para início do servidor é a loopback, enquanto a porta para canal de controle é a 2300, já o número de conexões simultâneas é definido como 20.
 
 Para especificação da interface e porta desejadas, deve se seguir a seguinte sintaxe:
 
-    ./compile.sh [interface de rede] [porta desejada]
+    ./compile.sh [interface de rede] [porta desejada] [número de threads/conexões]
 
 O script utiliza o GCC como compilador padrão seguindo o seguinte comando:
 
@@ -24,31 +24,41 @@ O script utiliza o GCC como compilador padrão seguindo o seguinte comando:
 
 Caso se deseje utilizar diretamente o arquivo compilado:
 
-    ./server.out [interface de rede] [porta desejada]
+    ./server.out [interface de rede] [porta desejada] [número de threads/conexões]
 
 ## Exemplos de utilização
 
-Utilizando script de compilação e especificando interface de rede e porta desejada:
+Utilizando script de compilação e especificando interface de rede, porta para conexão e número máximo de conexões:
 
-    $ ./compile.sh wlp2s0 2300
+    $ ./compile.sh wlp2s0 2300 5
     Compilando...
     Gotcha!
     --------------------------------------------------------------------------------
     Info: Interface selecionada: wlp2s0.
     Info: Utilizando interface selecionada.
     Info: Porta selecionada: 2300.
+    Info: Número máximo de clientes conectados simultaneamente: 5.
     Info: Socket criado com sucesso.
     Info: Rodando servidor em: 192.168.1.166:2300.
     --------------------------------------------------------------------------------
 
-Utilizando diretamente arquivo compila pelo gcc e executando servidor com interface e porta padrões:
+Utilizando diretamente arquivo compila pelo gcc e executando servidor com interface, porta e número de conexões padrão:
 
     $ ./server.out
     --------------------------------------------------------------------------------
     Info: Interface não informada, utilizando interface padrão: lo.
     Info: Porta padrão selecionada: 2300.
+    Info: Número máximo de clientes conectados simultaneamente não informado, utilizando valor padrão: 20.
     Info: Socket criado com sucesso.
     Info: Rodando servidor em: 127.0.0.1:2300.
+    --------------------------------------------------------------------------------
+
+Ao conectar com um cliente, uma mensagem com o endereço e porta do cliente será exibida, assim como o número atualizado de conexões servidas:
+
+    --------------------------------------------------------------------------------
+    Info: Conexão estabelecida com: 127.0.0.1:48830.
+    Info: Número de conexões atualmente: 1.
+    Send: 220 Service ready for new user.
     --------------------------------------------------------------------------------
 
 ## Minimum Implementation
