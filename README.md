@@ -26,8 +26,6 @@ Caso se deseje utilizar diretamente o arquivo compilado:
 
     ./server.out [interface de rede] [porta desejada]
 
-
-
 ## Exemplos de utilização
 
 Utilizando script de compilação e especificando interface de rede e porta desejada:
@@ -53,12 +51,9 @@ Utilizando diretamente arquivo compila pelo gcc e executando servidor com interf
     Info: Rodando servidor em: 127.0.0.1:2300.
     --------------------------------------------------------------------------------
 
-
-
 ## Minimum Implementation
 
-In order to make FTP workable without needless error messages, the
-following minimum implementation is required for all servers:
+In order to make FTP workable without needless error messages, the following minimum implementation is required for all servers:
 
     TYPE - ASCII Non-print
     MODE - Stream
@@ -75,27 +70,10 @@ The default values for transfer parameters are:
     MODE - Stream
     STRU - File
 
-## FTP commands
+## Comandos implementados
 
-| Access control commands | Transfer parameter commands | Ftp service commands |
-| ----------------------- | --------------------------- | -------------------- |
-| USER (0) | PORT (14) | RETR (17) |
-| PASS (1) | PASV (16) | STOR (18) |
-| ACCT (2) | TYPE (15) | STOU |
-| CWD (3) | STRU | APPE |
-| CDUP (4) | MODE | ALLO |
-| SMNT (5) | | REST |
-| REIN (6) | | RNFR|
-| QUIT (7) | | RNTO |
-| | | ABOR |
-| | | DELE |
-| | | RMD (11)|
-| | | MKD (10)|
-| | | PWD (9)|
-| | | LIST (8) |
-| | | NLST |
-| | | SITE |
-| | | SYST (13) |
-| | | STAT |
-| | | HELP |
-| | | NOOP (12) |
+Todos os comandos listados na implementação mínima e seus valores padrão foram implementados, enquanto para o restante dos comandos listados na RFC 959, é exibida a seguinte mensagem:
+
+    202 Command not implemented, superfluous at this site.
+
+Outros comandos que trazem uma experiência do usuário também foram implementados, como o LIST, CD, CDUP, PWD, MKD, RMD e SYST.
