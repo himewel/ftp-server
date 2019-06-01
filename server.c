@@ -85,10 +85,12 @@ int main (int argc, char *argv[]) {
       c->server_address = address;
       // Checa falha na conexão
       if (client_s == 0) {
+        printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
         printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
         strcpy(msg, "421 Service not available, closing control connection.\n");
         printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
         printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
+        printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
         write(client_s, msg, strlen(msg));
         c->connection_ok = -1;
         continue;
@@ -104,6 +106,11 @@ int main (int argc, char *argv[]) {
         clients_conec = clients_conec++;
         pthread_create(&id[clients_conec],NULL,multUser,(void*)c);
       }
+    } else {
+      printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
+      printf("%s%c[1mInfo: %sNúmero máximo de conexões simultâneas atigido: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,clients_conec,NRM);
+      printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
+      printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
     }
   }
 
