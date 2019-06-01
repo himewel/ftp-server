@@ -14,9 +14,11 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <signal.h>
+#include <pthread.h>
 
 #define PORTNUM 2300
 #define MAX_ARGUMENTS 5
+#define MAX_CLIENTS 200
 #define STRING_SIZE 200
 #define BUF_SIZE 8192
 
@@ -75,3 +77,6 @@ char *func_noop(ConnectionStatus *c, char *message);
 char *func_syst(ConnectionStatus *c, char *message);
 char *func_retr(ConnectionStatus *c, char *message);
 char *func_stor(ConnectionStatus *c, char *message);
+
+/* THREAD */
+void *multUser(void *_c);

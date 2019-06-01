@@ -9,6 +9,11 @@ void signal_handler(int sign) {
 }
 
 int main (int argc, char *argv[]) {
+
+  // variáveis de thread
+  pthread_t id[MAX_CLIENTS];
+  int clients_conec = 0;
+
   printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   // Confere a existência do argumento
   char *interface;
@@ -60,102 +65,118 @@ int main (int argc, char *argv[]) {
   int addr_len = sizeof(client);
 
   printf("%s%c[1mInfo: %sRodando servidor em: %s%c[1m%s:%i%s.\n",YEL,27,NRM,BLU,27,address,port,NRM);
+  printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   while (1) {
-    printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
     // Recebe conexão e garante que valor seja diferente de 0
     client_s = accept(s, (struct sockaddr*)&client, &addr_len);
     signal(SIGINT, signal_handler);
+    printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
 
-    // Struct que mantém estado da conexão
-    ConnectionStatus *c = initializeStatus();
-    c->control_session = client_s;
-    c->server_address = address;
+    if (clients_conec < MAX_CLIENTS){
+      // Struct que mantém estado da conexão
+      ConnectionStatus *c = initializeStatus();
+      c->control_session = client_s;
+      c->server_address = address;
+      // Checa falha na conexão
+      if (client_s == 0) {
+        printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+        strcpy(msg, "421 Service not available, closing control connection.\n");
+        printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
+        printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
+        write(client_s, msg, strlen(msg));
+        c->connection_ok = -1;
+        continue;
+      } else {
+        strcpy(msg, "220 Service ready for new user.\n");
+        write(client_s, msg, strlen(msg));
 
-    if (client_s == 0) {
-      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
-      strcpy(msg, "421 Service not available, closing control connection.\n");
-      printf("%s",msg);
-      printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
-      write(client_s, msg, strlen(msg));
-      c->connection_ok = -1;
-      continue;
-    } else {
-      strcpy(msg, "220 Service ready for new user.\n");
-      write(client_s, msg, strlen(msg));
-    }
-
-    printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
-
-    // Caso erro na conexão ou mensagem solicitando encerramento
-    while (c->connection_ok == 1) {
-      printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
-      printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
-      bzero(msg, STRING_SIZE);
-      // Decodifica mensagem e trata
-      read(client_s, msg, sizeof(msg));
-      printf("%s%c[1mRecv: %s%s",BLU,27,NRM,msg);
-      int message = decode_message(msg);
-      // Trata o comando recebido
-      switch (message) {
-        case 0:
-          strcpy(msg,func_user(c, msg));
-          break;
-        case 1:
-          strcpy(msg,func_pass(c,msg));
-          break;
-        case 20:
-          strcpy(msg,func_cwd(c,msg));
-          break;
-        case 2:
-          strcpy(msg,func_cdup(c,msg));
-          break;
-        case 3:
-          strcpy(msg,func_quit(c,msg));
-          break;
-        case 4:
-          strcpy(msg,func_list(c,msg));
-          break;
-        case 21:
-          strcpy(msg,func_pwd(c,msg));
-          break;
-        case 22:
-          strcpy(msg,func_mkd(c,msg));
-          break;
-        case 23:
-          strcpy(msg,func_rmd(c,msg));
-          break;
-        case 11:
-          strcpy(msg,func_noop(c,msg));
-          break;
-        case 5:
-          strcpy(msg,func_syst(c,msg));
-          break;
-        case 6:
-          strcpy(msg,func_port(c,msg));
-          break;
-        case 7:
-          strcpy(msg,func_type(c,msg));
-          break;
-        case 8:
-          strcpy(msg,func_pasv(c,msg));
-          break;
-        case 9:
-          strcpy(msg,func_retr(c,msg));
-          break;
-        case 10:
-          strcpy(msg,func_stor(c,msg));
-          break;
-        default:
-          strcpy(msg,"202 Command not implemented, superfluous at this site.\n");
-          break;
+        printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
+        printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
+        printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
+        printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
+        // criando a thread
+        clients_conec = clients_conec++;
+        pthread_create(&id[clients_conec],NULL,multUser,(void*)c);
       }
-      write(client_s, msg, strlen(msg));
     }
-    free(c);
-    shutdown(client_s, SHUT_RDWR);
-    close(client_s);
-    client_s = -1;
   }
 
   return 0;
+}
+
+void *multUser(void *_c){
+
+  ConnectionStatus *c = (ConnectionStatus*) _c;
+  char msg[STRING_SIZE];
+
+  // Caso erro na conexão ou mensagem solicitando encerramento
+  while (c->connection_ok == 1) {
+    bzero(msg, STRING_SIZE);
+    // Decodifica mensagem e trata
+    read(c->control_session, msg, sizeof(msg));
+    printf("%s%c[1mRecv: %s%s",BLU,27,NRM,msg);
+    int message = decode_message(msg);
+    // Trata o comando recebido
+    switch (message) {
+      case 0:
+        strcpy(msg,func_user(c, msg));
+        break;
+      case 1:
+        strcpy(msg,func_pass(c,msg));
+        break;
+      case 20:
+        strcpy(msg,func_cwd(c,msg));
+        break;
+      case 2:
+        strcpy(msg,func_cdup(c,msg));
+        break;
+      case 3:
+        strcpy(msg,func_quit(c,msg));
+        break;
+      case 4:
+        strcpy(msg,func_list(c,msg));
+        break;
+      case 21:
+        strcpy(msg,func_pwd(c,msg));
+        break;
+      case 22:
+        strcpy(msg,func_mkd(c,msg));
+        break;
+      case 23:
+        strcpy(msg,func_rmd(c,msg));
+        break;
+      case 11:
+        strcpy(msg,func_noop(c,msg));
+        break;
+      case 5:
+        strcpy(msg,func_syst(c,msg));
+        break;
+      case 6:
+        strcpy(msg,func_port(c,msg));
+        break;
+      case 7:
+        strcpy(msg,func_type(c,msg));
+        break;
+      case 8:
+        strcpy(msg,func_pasv(c,msg));
+        break;
+      case 9:
+        strcpy(msg,func_retr(c,msg));
+        break;
+      case 10:
+        strcpy(msg,func_stor(c,msg));
+        break;
+      default:
+        strcpy(msg,"202 Command not implemented, superfluous at this site.\n");
+        break;
+    }
+    write(c->control_session, msg, strlen(msg));
+    printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
+    printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
+  }
+
+  shutdown(c->control_session, SHUT_RDWR);
+  close(c->control_session);
+  free(c);
+  //client_s = -1;
 }
