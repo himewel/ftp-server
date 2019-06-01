@@ -183,6 +183,11 @@ void *multUser(void *_c){
   shutdown(c->control_session, SHUT_RDWR);
   close(c->control_session);
   free(c);
+  // Atualiza número de clientes conectados
   clients_conec = clients_conec--;
+  printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
+  printf("%s%c[1mInfo: %sConexão encerrada, atualizando número de conexões: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,clients_conec,NRM);
+  printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
+  printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   //client_s = -1;
 }
