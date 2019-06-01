@@ -1,6 +1,8 @@
 #include "server_func.h"
 
 int client_s;
+int MAX_CLIENTS = 20;
+int clients_conec = 0;
 
 void signal_handler(int sign) {
   close(client_s);
@@ -9,11 +11,6 @@ void signal_handler(int sign) {
 }
 
 int main (int argc, char *argv[]) {
-
-  // variáveis de thread
-  pthread_t id[MAX_CLIENTS];
-  int clients_conec = 0;
-
   printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   // Confere a existência do argumento
   char *interface;
@@ -39,7 +36,7 @@ int main (int argc, char *argv[]) {
   // Pega porta informada ou padrão
   int port;
   if (argc > 2) {
-    port = (int)strtol(argv[2], NULL, 10);;
+    port = (int)strtol(argv[2], NULL, 10);
     printf("%s%c[1mInfo: %sPorta selecionada: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,port,NRM);
     if (port <= 1024) {
       printf("%s%c[1mErro: Sem permissão para utilização da porta selecionada.%s\n",RED,27,NRM);
@@ -50,6 +47,15 @@ int main (int argc, char *argv[]) {
     port = PORTNUM;
     printf("%s%c[1mInfo: %sPorta padrão selecionada: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,port,NRM);
   }
+
+  // variáveis de thread
+  if (argc > 3) {
+    MAX_CLIENTS = (int)strtol(argv[3], NULL, 10);
+    printf("%s%c[1mInfo: %sNúmero máximo de clientes conectados simultaneamente: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,MAX_CLIENTS,NRM);
+  } else {
+    printf("%s%c[1mInfo: %sNúmero máximo de clientes conectados simultaneamente não informado, utilizando valor padrão: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,MAX_CLIENTS,NRM);
+  }
+  pthread_t id[MAX_CLIENTS];
 
   // Cria socket e fica em loop até sua criação ser bem sucedida
   int s = createSocketToServe(address, port);
@@ -174,9 +180,9 @@ void *multUser(void *_c){
     printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
     printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   }
-
   shutdown(c->control_session, SHUT_RDWR);
   close(c->control_session);
   free(c);
+  clients_conec = clients_conec--;
   //client_s = -1;
 }
