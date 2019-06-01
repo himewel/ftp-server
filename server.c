@@ -2,7 +2,7 @@
 
 int client_s;
 int MAX_CLIENTS = 20;
-int clients_conec = 0;
+int clients_conec;
 
 void signal_handler(int sign) {
   close(client_s);
@@ -49,6 +49,7 @@ int main (int argc, char *argv[]) {
   }
 
   // variáveis de thread
+  clients_conec = 0;
   if (argc > 3) {
     MAX_CLIENTS = (int)strtol(argv[3], NULL, 10);
     printf("%s%c[1mInfo: %sNúmero máximo de clientes conectados simultaneamente: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,MAX_CLIENTS,NRM);
@@ -92,23 +93,27 @@ int main (int argc, char *argv[]) {
         printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
         printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
         write(client_s, msg, strlen(msg));
-        c->connection_ok = -1;
+        free(c);
         continue;
       } else {
         strcpy(msg, "220 Service ready for new user.\n");
         write(client_s, msg, strlen(msg));
 
         printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
+        printf("%s%c[1mInfo: %sNúmero de conexões atualmente: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,clients_conec+1,NRM);
         printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
         printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
         printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
         // criando a thread
-        clients_conec = clients_conec++;
+        clients_conec++;
         pthread_create(&id[clients_conec],NULL,multUser,(void*)c);
       }
     } else {
       printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
-      printf("%s%c[1mInfo: %sNúmero máximo de conexões simultâneas atigido: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,clients_conec,NRM);
+      printf("%s%c[1mInfo: %sNúmero máximo de conexões simultâneas atigido: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,MAX_CLIENTS,NRM);
+      strcpy(msg, "421 Service not available, closing control connection.\n");
+      printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
+      write(client_s, msg, strlen(msg));
       printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
       printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
     }
@@ -191,7 +196,7 @@ void *multUser(void *_c){
   close(c->control_session);
   free(c);
   // Atualiza número de clientes conectados
-  clients_conec = clients_conec--;
+  clients_conec--;
   printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
   printf("%s%c[1mInfo: %sConexão encerrada, atualizando número de conexões: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,clients_conec,NRM);
   printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
