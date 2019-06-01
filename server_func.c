@@ -53,6 +53,7 @@ int createSocketToServe(char *address, int port) {
 }
 
 int createConnectionToAccept(int socket) {
+  // Cria uma conexão como servidor
   struct sockaddr_in client;
   int addr_len = sizeof(client);
   int client_s = accept(socket, (struct sockaddr*)&client, &addr_len);
@@ -173,6 +174,7 @@ char **split_words(char *m, char *limit) {
 }
 
 int hex_to_dec(char *hex, int n) {
+  // Converte hexadecimal para decimal
   int val;
   int decimal = 0;
   int pow = 1;
@@ -191,6 +193,7 @@ int hex_to_dec(char *hex, int n) {
 }
 
 char *dec_to_hex(int dec, int n) {
+  // Converte decimal para hexadecimal
   char HEXVALUE[] = {'0', '1', '2', '3', '4', '5', '6','7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
   char *hex = (char*) malloc(n*sizeof(char));
 
@@ -284,8 +287,6 @@ char *func_quit(ConnectionStatus *c, char *message) {
   char *return_message = (char*) malloc(STRING_SIZE*sizeof(char));
   c->connection_ok = 0;
   return_message = "221 Service closing control connection.\n";
-  printf("%s%c[1mSend: %s%s",GRN,27,NRM,return_message);
-  printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   return return_message;
 }
 
