@@ -35,6 +35,7 @@ struct connection_status {
   int control_session;
   char type;
   char *server_address;
+  char *client_address;
   int modo_passivo;
 };
 

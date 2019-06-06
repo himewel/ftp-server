@@ -84,6 +84,9 @@ int main (int argc, char *argv[]) {
       ConnectionStatus *c = initializeStatus();
       c->control_session = client_s;
       c->server_address = address;
+      char *client_address = (char*) malloc(15*sizeof(char));
+      client_address = inet_ntoa(client.sin_addr);
+      c->client_address = client_address;
       // Checa falha na conexão
       if (client_s == 0) {
         printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
@@ -105,8 +108,8 @@ int main (int argc, char *argv[]) {
         printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
         printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
         // criando a thread
-        clients_conec++;
         pthread_create(&id[clients_conec],NULL,multUser,(void*)c);
+        clients_conec++;
       }
     } else {
       // Caso o número máximo de conexões tenha sido atingido

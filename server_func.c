@@ -319,6 +319,9 @@ char *func_port(ConnectionStatus *c, char *message) {
   c->data_session_port = porta;
   c->data_session = s;
   c->modo_passivo = 0;
+  char *address = (char*) malloc(15*sizeof(char));
+  sprintf(address, "%s.%s.%s.%s", args[0], args[1], args[2], args[3]);
+  c->client_address = address;
   printf("%s%c[1mInfo: %sPorta selecionada pelo %c[1mcliente%c[0m para conexão de dados: %s%c[1m%i%s.\n",YEL,27,NRM,27,27,BLU,27,porta,NRM);
 
   return "200 Command okay.\n";
@@ -396,7 +399,8 @@ char *func_list(ConnectionStatus *c,char *message) {
   int client_s;
   if (c->modo_passivo == 0) {
     // Conecta com cliente
-    client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
+    printf("%s",c->client_address);
+    client_s = createConnectionToConnect(c->data_session, c->client_address, c->data_session_port);
   } else {
     client_s = createConnectionToAccept(c->data_session);
   }
@@ -571,7 +575,7 @@ char *func_retr(ConnectionStatus *c, char *message) {
     // Conecta com cliente
     int client_s;
     if (c->modo_passivo == 0) {
-      client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
+      client_s = createConnectionToConnect(c->data_session, c->client_address, c->data_session_port);
     } else {
       client_s = createConnectionToAccept(c->data_session);
     }
@@ -665,7 +669,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
     // Conecta com cliente
     int client_s;
     if (c->modo_passivo == 0) {
-      client_s = createConnectionToConnect(c->data_session, c->server_address, c->data_session_port);
+      client_s = createConnectionToConnect(c->data_session, c->client_address, c->data_session_port);
     } else {
       client_s = createConnectionToAccept(c->data_session);
     }
