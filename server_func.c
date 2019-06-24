@@ -330,7 +330,6 @@ char *func_port(ConnectionStatus *c, char *message) {
 char *func_type(ConnectionStatus *c, char *message) {
   // Decodifica mensagem
   char **args = split_words(message, " ");
-  printf("%s\n", args[1]);
   // Somente ASCII implementada na versão mínima
   if (strcmp(args[1], "A") == 0) {
     c->type = 'A';
@@ -399,7 +398,6 @@ char *func_list(ConnectionStatus *c,char *message) {
   int client_s;
   if (c->modo_passivo == 0) {
     // Conecta com cliente
-    printf("%s",c->client_address);
     client_s = createConnectionToConnect(c->data_session, c->client_address, c->data_session_port);
   } else {
     client_s = createConnectionToAccept(c->data_session);
