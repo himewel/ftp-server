@@ -48,6 +48,16 @@ int main (int argc, char *argv[]) {
     printf("%s%c[1mInfo: %sPorta padrão selecionada: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,port,NRM);
   }
 
+  // Pega limite de taxa do servidor
+  int limite_taxa;
+  if (argc > 3) {
+    limite_taxa = (int)strtol(argv[3], NULL, 10);
+    printf("%s%c[1mInfo: %sLimite total da taxa de transmissão do servidor: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
+  } else {
+    limite_taxa = 2000000;
+    printf("%s%c[1mInfo: %sUtilizando limite total da taxa de transmissão padrão: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
+  }
+
   // variáveis de thread
   clients_conec = 0;
   if (argc > 3) {
@@ -67,6 +77,7 @@ int main (int argc, char *argv[]) {
   }
   printf("%s%c[1mInfo: %sSocket criado com %c[1msucesso%c[0m.\n",YEL,27,NRM,27,27);
 
+  // Cria variáveis usadas nas conexões
   char msg[STRING_SIZE];
   struct sockaddr_in client;
   int addr_len = sizeof(client);
