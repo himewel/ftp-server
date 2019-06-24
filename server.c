@@ -92,28 +92,28 @@ int main (int argc, char *argv[]) {
     ssize_t read;
     int i = 0;
     while ((read = getline(&line, &len, file)) != -1) {
-      i += 1;
+      i = i + 1;
       char grandeza;
-      sscanf(line, "%s %i %c", endereco[i-1], taxa[i-1], grandeza);
+      sscanf(line, "%s %i %c", endereco[i-1], &taxa[i-1], &grandeza);
       switch (grandeza) {
         case 'G':
         case 'g':
-          taxa *= 1000000000;
+          taxa[i-1] *= 1000000000;
           break;
         case 'M':
         case 'm':
-          taxa *= 1000000;
+          taxa[i-1] *= 1000000;
           break;
         case 'K':
         case 'k':
-          taxa *= 1000;
+          taxa[i-1] *= 1000;
           break;
         case 'B':
         case 'b':
           break;
         default:
-          printf("Unidade de grandeza não reconhecida na linha %i, lendo como K.\n");
-          taxa *= 1000;
+          printf("Unidade de grandeza não reconhecida na linha %i, lendo como K.\n", i);
+          taxa[i-1] *= 1000;
           break;
       }
       if (i == MAX_CLIENTS) {
@@ -273,7 +273,7 @@ void *multUser(void *_c){
   }
   // Atualiza taxa de transmissão do servidor
   taxa_atual -= c->taxa_transmissao;
-  
+
   shutdown(c->control_session, SHUT_RDWR);
   close(c->control_session);
   free(c);
