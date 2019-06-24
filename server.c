@@ -48,16 +48,6 @@ int main (int argc, char *argv[]) {
     printf("%s%c[1mInfo: %sPorta padrão selecionada: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,port,NRM);
   }
 
-  // Pega limite de taxa do servidor
-  int limite_taxa;
-  if (argc > 3) {
-    limite_taxa = (int)strtol(argv[3], NULL, 10);
-    printf("%s%c[1mInfo: %sLimite total da taxa de transmissão do servidor: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
-  } else {
-    limite_taxa = 2000000;
-    printf("%s%c[1mInfo: %sUtilizando limite total da taxa de transmissão padrão: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
-  }
-
   // variáveis de thread
   clients_conec = 0;
   if (argc > 3) {
@@ -68,6 +58,16 @@ int main (int argc, char *argv[]) {
   }
   pthread_t id[MAX_CLIENTS];
 
+  // Pega limite de taxa do servidor
+  int limite_taxa;
+  if (argc > 4) {
+    limite_taxa = (int)strtol(argv[4], NULL, 10);
+    printf("%s%c[1mInfo: %sLimite total da taxa de transmissão do servidor: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
+  } else {
+    limite_taxa = 2000000;
+    printf("%s%c[1mInfo: %sUtilizando limite total da taxa de transmissão padrão: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
+  }
+
   // Cria socket e fica em loop até sua criação ser bem sucedida
   int s = createSocketToServe(address, port);
   while (s == -1) {
@@ -76,6 +76,51 @@ int main (int argc, char *argv[]) {
     s = createSocketToServe(address, port);
   }
   printf("%s%c[1mInfo: %sSocket criado com %c[1msucesso%c[0m.\n",YEL,27,NRM,27,27);
+
+  FILE *file;
+  if ((file = fopen("config.ini", "r")) == NULL) {
+    printf("%s%c[1mInfo: %sArquivo de configuração não encontrado, utilizando taxa padrão para todos os usuários.\n",YEL,27,NRM);
+    printf("%s%c[1mInfo: %sTaxa de transmissão padrão: 1000000\n",YEL,27,NRM);
+  } else {
+    // Variáveis na leitura
+    char *line;
+    size_t len = 0;
+    ssize_t read;
+    int i = 0;
+    // Variáveis com dados
+    char endereco[MAX_CLIENTS][15];
+    int taxa[MAX_CLIENTS];
+    while ((read = getline(&line, &len, file)) != -1) {
+      i += 1;
+      char grandeza;
+      sscanf(line, "%s %i %c", endereco[i-1], taxa[i-1], grandeza);
+      switch (grandeza) {
+        case 'G':
+        case 'g':
+          taxa *= 1000000000;
+          break;
+        case 'M':
+        case 'm':
+          taxa *= 1000000;
+          break;
+        case 'K':
+        case 'k':
+          taxa *= 1000;
+          break;
+        case 'B':
+        case 'b':
+          break;
+        default:
+          printf("Unidade de grandeza não reconhecida na linha %i, lendo como K.\n");
+          taxa *= 1000;
+          break;
+      }
+      if (i == MAX_CLIENTS) {
+        break;
+      }
+    }
+    fclose(file);
+  }
 
   // Cria variáveis usadas nas conexões
   char msg[STRING_SIZE];
