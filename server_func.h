@@ -36,6 +36,7 @@ struct connection_status {
   char type;
   char *server_address;
   char *client_address;
+  int taxa_transmissao;
   int modo_passivo;
 };
 
