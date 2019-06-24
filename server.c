@@ -175,6 +175,7 @@ int main (int argc, char *argv[]) {
       } else {
         strcpy(msg, "220 Service ready for new user.\n");
         write(client_s, msg, strlen(msg));
+        taxa_atual += c->taxa_transmissao;
 
         printf("%s%c[1mInfo: %sConexão estabelecida com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
         printf("%s%c[1mInfo: %sNúmero de conexões atualmente: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,clients_conec+1,NRM);
@@ -270,6 +271,9 @@ void *multUser(void *_c){
     printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
     printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   }
+  // Atualiza taxa de transmissão do servidor
+  taxa_atual -= c->taxa_transmissao;
+  
   shutdown(c->control_session, SHUT_RDWR);
   close(c->control_session);
   free(c);
