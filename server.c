@@ -151,7 +151,6 @@ int main (int argc, char *argv[]) {
           break;
         }
       }
-      printf("%s %i\n",c->client_address,c->taxa_transmissao);
       // Checa falha na conexão
       if (client_s == 0) {
         printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
@@ -283,6 +282,7 @@ void *multUser(void *_c){
   clients_conec--;
   printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
   printf("%s%c[1mInfo: %sConexão encerrada, atualizando número de conexões: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,clients_conec,NRM);
+  printf("%s%c[1mInfo: %sTaxa de transmissão reservada/Taxa máxima definida: %s%c[1m%i/%i%s.\n",YEL,27,NRM,BLU,27,taxa_atual,taxa_servidor,NRM);
   printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
   printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
   //client_s = -1;
