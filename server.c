@@ -3,6 +3,8 @@
 int client_s;
 int MAX_CLIENTS = 20;
 int clients_conec;
+int taxa_servidor = 2000000;
+int taxa_atual = 0;
 
 void signal_handler(int sign) {
   close(client_s);
@@ -59,13 +61,11 @@ int main (int argc, char *argv[]) {
   pthread_t id[MAX_CLIENTS];
 
   // Pega limite de taxa do servidor
-  int limite_taxa;
   if (argc > 4) {
-    limite_taxa = (int)strtol(argv[4], NULL, 10);
-    printf("%s%c[1mInfo: %sLimite total da taxa de transmissão do servidor: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
+    taxa_servidor = (int)strtol(argv[4], NULL, 10);
+    printf("%s%c[1mInfo: %sLimite total da taxa de transmissão do servidor: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,taxa_servidor,NRM);
   } else {
-    limite_taxa = 2000000;
-    printf("%s%c[1mInfo: %sUtilizando limite total da taxa de transmissão padrão: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,limite_taxa,NRM);
+    printf("%s%c[1mInfo: %sUtilizando limite total da taxa de transmissão padrão: %s%c[1m%i%s.\n",YEL,27,NRM,BLU,27,taxa_servidor,NRM);
   }
 
   // Cria socket e fica em loop até sua criação ser bem sucedida
@@ -78,6 +78,10 @@ int main (int argc, char *argv[]) {
   printf("%s%c[1mInfo: %sSocket criado com %c[1msucesso%c[0m.\n",YEL,27,NRM,27,27);
 
   FILE *file;
+  // Variáveis com dados
+  char endereco[MAX_CLIENTS][15];
+  int taxa[MAX_CLIENTS];
+  // Leitura do arquivo
   if ((file = fopen("config.ini", "r")) == NULL) {
     printf("%s%c[1mInfo: %sArquivo de configuração não encontrado, utilizando taxa padrão para todos os usuários.\n",YEL,27,NRM);
     printf("%s%c[1mInfo: %sTaxa de transmissão padrão: 1000000\n",YEL,27,NRM);
@@ -87,9 +91,6 @@ int main (int argc, char *argv[]) {
     size_t len = 0;
     ssize_t read;
     int i = 0;
-    // Variáveis com dados
-    char endereco[MAX_CLIENTS][15];
-    int taxa[MAX_CLIENTS];
     while ((read = getline(&line, &len, file)) != -1) {
       i += 1;
       char grandeza;
@@ -143,10 +144,27 @@ int main (int argc, char *argv[]) {
       char *client_address = (char*) malloc(15*sizeof(char));
       client_address = inet_ntoa(client.sin_addr);
       c->client_address = client_address;
+      c->taxa_transmissao = 1000000;
+      for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (strcmp(endereco[i],c->client_address) == 0) {
+          c->taxa_transmissao = taxa[i];
+          break;
+        }
+      }
       // Checa falha na conexão
       if (client_s == 0) {
         printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
         printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+        strcpy(msg, "421 Service not available, closing control connection.\n");
+        printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
+        printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
+        printf("%s--------------------------------------------------------------------------------%s\n",GRN,NRM);
+        write(client_s, msg, strlen(msg));
+        free(c);
+        continue;
+      } else if (c->taxa_transmissao + taxa_atual > taxa_servidor) {
+        printf("%s%c[1mInfo: %sConexão recusada com: %s%c[1m%s:%d%s.\n",YEL,27,NRM,BLU,27,inet_ntoa(client.sin_addr),(int) ntohs(client.sin_port),NRM);
+        printf("%s%c[1mErro: Taxa atribuída ao cliente é maior que taxa limite do servidor.%s\n",RED,27,NRM);
         strcpy(msg, "421 Service not available, closing control connection.\n");
         printf("%s%c[1mSend: %s%s",GRN,27,NRM,msg);
         printf("%s--------------------------------------------------------------------------------%s\n",RED,NRM);
