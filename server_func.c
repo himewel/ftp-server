@@ -418,25 +418,47 @@ char *func_list(ConnectionStatus *c,char *message) {
 
   char return_message[STRING_SIZE];
   int i = 0;
+  int tam_buffer = 0;
+  clock_t begin, end;
+  char buffer[2];
   while (fgets(return_message, sizeof(return_message),arquivos) != NULL) {
     return_message[strlen(return_message)-1] = 0;
     sprintf(return_message, "%s\r\n",return_message);
-    printf("%s",return_message);
     i++;
-    if (c->modo_passivo == 0) {
-      w = write(c->data_session, return_message, strlen(return_message));
-    } else {
-      w = write(client_s, return_message, strlen(return_message));
-    }
-    // Caso haja erro
-    if (w == -1) {
-      printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+    memset(buffer, '\0', strlen(buffer));
+    for (int j = 0; j < strlen(return_message); j++){
+      tam_buffer += 1;
+      // Envia um byte dos dados
+      sprintf(buffer, "%s%c", buffer,return_message[j]);
       if (c->modo_passivo == 0) {
-        close(c->data_session);
+        w = write(c->data_session, buffer, strlen(buffer));
       } else {
-        close(client_s);
+        w = write(client_s, buffer, strlen(buffer));
       }
-      return "425 Can't open data connection.\n";
+      printf("%s",buffer);
+      memset(buffer, '\0', strlen(buffer));
+
+      // Caso haja erro
+      if (w == -1) {
+        printf("%s%c[1mErro: %i%s\n",RED,27,errno,NRM);
+        if (c->modo_passivo == 0) {
+          close(c->data_session);
+        } else {
+          close(client_s);
+        }
+        return "425 Can't open data connection.\n";
+      }
+
+      // Verifica se buffer lotou
+      if (tam_buffer == c->taxa_transmissao) {
+        // Pausa enquanto completa um segundo
+        end = clock();
+        float tempo_gasto = (float)(end - begin) / CLOCKS_PER_SEC;
+        usleep((1-tempo_gasto)*1000000);
+        // Reinicia timer
+        tam_buffer = 0;
+        begin = clock();
+      }
     }
   }
   pclose(arquivos);
