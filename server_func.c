@@ -425,18 +425,16 @@ char *func_list(ConnectionStatus *c,char *message) {
     return_message[strlen(return_message)-1] = 0;
     sprintf(return_message, "%s\r\n",return_message);
     i++;
-    memset(buffer, '\0', strlen(buffer));
     for (int j = 0; j < strlen(return_message); j++){
       tam_buffer += 1;
       // Envia um byte dos dados
-      sprintf(buffer, "%s%c", buffer,return_message[j]);
+      sprintf(buffer, "%c", return_message[j]);
       if (c->modo_passivo == 0) {
         w = write(c->data_session, buffer, strlen(buffer));
       } else {
         w = write(client_s, buffer, strlen(buffer));
       }
       printf("%s",buffer);
-      memset(buffer, '\0', strlen(buffer));
 
       // Caso haja erro
       if (w == -1) {
