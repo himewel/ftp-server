@@ -12,7 +12,7 @@ Dê as permissões necessárias para execução do compile.sh e o execute.
 
 Para execução do cliente e servidor, o servidor deve ser iniciado primeiro, evitando um "421 Service not available, closing control connection.".
 
-Se não especificado por argumentos, a interface padrão para início do servidor é a loopback, enquanto a porta para canal de controle é a 2300, já o número de conexões simultâneas é definido como 20.
+Se não especificado por argumentos, a interface padrão para início do servidor é a loopback, enquanto a porta para canal de controle é a 2300, já o número de conexões simultâneas é definido como 20 e a cota máxima de transmissão do servidor fica definida como 2000000 B (2 MB).
 
 Para especificação da interface e porta desejadas, deve se seguir a seguinte sintaxe:
 
@@ -62,7 +62,7 @@ Ao conectar com um cliente, uma mensagem com o endereço e porta do cliente ser�
     --------------------------------------------------------------------------------
     Info: Conexão estabelecida com: 127.0.0.1:48830.
     Info: Número de conexões atualmente: 1.
-    Info: Taxa de transmissão reservada/Taxa máxima definida: 10/2000000.
+    Info: Taxa de transmissão reservada/Taxa máxima definida: 100000/2000000.
     Send: 220 Service ready for new user.
     --------------------------------------------------------------------------------
 
@@ -95,7 +95,7 @@ Outros comandos que trazem uma melhor experiência do usuário também foram imp
 
 ## QoS
 
-Na ausência de um arquivo nomeado *config.ini* (ver arquivo exemplo) especificando taxas para os endereços IP específicos, todos os clientes recebem uma taxa padrão definida pela razão entre cota de transmissão do servidor e o número máximo de clientes.
+Na ausência de um arquivo nomeado *config.ini* especificando taxas para os endereços IP específicos, todos os clientes recebem uma taxa padrão definida pela razão entre cota de transmissão do servidor e o número máximo de clientes.
 
 Ao realizar uma transferência uma mensagem semelhante essa será exibida com o tamanho do arquivo, o tempo de processamento e relação entre o tamanho e o tempo de processamento.
 
@@ -112,3 +112,12 @@ Ao realizar uma transferência uma mensagem semelhante essa será exibida com o 
 Nesse exemplo, a taxa de transmissão para o cliente foi 10 B. Distorções entre o tempo e taxas exibidas pelo cliente FTP são atribuídas ao fato do cálculo do tempo também considerar comandos que não tem efeito na rede, como manipulação de contadores ou o processo disputando processamento.
 
 Distorções maiores ocorrem no STOR, aparentemente o cliente envia todos os dados de uma vez, porém o servidor não efetua o processamento dos dados da mesma maneira.
+
+### Configuração
+
+Todos os dados referentes a transferência de dados, mesmo não exibindo a unidade em todas mensagens de log, estão em Bytes. O arquivo de configuração tem suporte as grandezas GB, MB, KB e B, porém estes são descritos apenas com a primeira letra após um espaço da taxa definida.
+
+    172.16.14.88 1 M
+    172.16.14.55 2 M
+
+Clientes com taxas que superem a cota máxima do servidor tem sua conexão rejeitada. Só são aceitas conexões em que o cliente tem sua taxa de transmissão garantida.
