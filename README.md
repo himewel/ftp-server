@@ -92,3 +92,23 @@ Todos os comandos listados na implementação mínima e seus valores padrão for
     202 Command not implemented, superfluous at this site.
 
 Outros comandos que trazem uma melhor experiência do usuário também foram implementados, como o LIST, CD, CDUP, PWD, MKD, RMD e SYST.
+
+## QoS
+
+Na ausência de um arquivo nomeado *config.ini* (ver arquivo exemplo) especificando taxas para os endereços IP específicos, todos os clientes recebem uma taxa padrão definida pela razão entre cota de transmissão do servidor e o número máximo de clientes.
+
+Ao realizar uma transferência uma mensagem semelhante essa será exibida com o tamanho do arquivo, o tempo de processamento e relação entre o tamanho e o tempo de processamento.
+
+    --------------------------------------------------------------------------------
+    Recv: RETR config.ini
+    Info: Arquivo selecionado: config.ini.
+    Send: 150 File status okay; about to open data connection.
+    Info: Tamanho do arquivo: 73B.
+    Info: Tempo de processamento: 7.001747s.
+    Info: Taxa de processamento: 10.43B/s.
+    Send: 250 Requested file action okay, completed.
+    --------------------------------------------------------------------------------
+
+Nesse exemplo, a taxa de transmissão para o cliente foi 10 B. Distorções entre o tempo e taxas exibidas pelo cliente FTP são atribuídas ao fato do cálculo do tempo também considerar comandos que não tem efeito na rede, como manipulação de contadores ou o processo disputando processamento.
+
+Distorções maiores ocorrem no STOR, aparentemente o cliente envia todos os dados de uma vez, porém o servidor não efetua o processamento dos dados da mesma maneira.
