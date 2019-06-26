@@ -418,16 +418,21 @@ char *func_list(ConnectionStatus *c,char *message) {
 
   char return_message[STRING_SIZE];
   int i = 0;
-  int tam_buffer = 0;
-  clock_t end;
-  clock_t begin = clock();
   char buffer[2];
+  int tam_buffer = 0;
+  int tam_total = 0;
+  struct timeval begin, end, begin_total, end_total;
+  gettimeofday(&begin, NULL);
+  gettimeofday(&begin_total, NULL);
+
   while (fgets(return_message, sizeof(return_message),arquivos) != NULL) {
     return_message[strlen(return_message)-1] = 0;
     sprintf(return_message, "%s\r\n",return_message);
     i++;
     for (int j = 0; j < strlen(return_message); j++){
       tam_buffer += 1;
+      tam_total += 1;
+
       // Envia um byte dos dados
       sprintf(buffer, "%c", return_message[j]);
       if (c->modo_passivo == 0) {
@@ -451,15 +456,16 @@ char *func_list(ConnectionStatus *c,char *message) {
       // Verifica se buffer lotou
       if (tam_buffer == c->taxa_transmissao) {
         // Pausa enquanto completa um segundo
-        end = clock();
-        float tempo_gasto = (float)(end - begin) / CLOCKS_PER_SEC;
+        gettimeofday(&end, NULL);
+        float tempo_gasto = (float)(end.tv_usec - begin.tv_usec) / 1000000 + (float)(end.tv_sec - begin.tv_sec);
         usleep((1-tempo_gasto)*1000000);
         // Reinicia timer
         tam_buffer = 0;
-        begin = clock();
+        gettimeofday(&begin, NULL);
       }
     }
   }
+  gettimeofday(&end_total, NULL);
   pclose(arquivos);
   if (i == 0) {
     sprintf(return_message,"Nao foi possivel acessar '%s': Arquivo ou diretorio inexistente\r\n",path);
@@ -469,6 +475,11 @@ char *func_list(ConnectionStatus *c,char *message) {
       w = write(client_s, return_message, strlen(return_message));
     }
   }
+
+  float tempo_total = (float)(end_total.tv_usec - begin_total.tv_usec) / 1000000 + (float)(end_total.tv_sec - begin_total.tv_sec);
+  printf("%s%c[1mInfo: %sTamanho do arquivo: %s%c[1m%iB%s.\n",YEL,27,NRM,BLU,27,tam_total,NRM);
+  printf("%s%c[1mInfo: %sTempo de processamento: %s%c[1m%fs%s.\n",YEL,27,NRM,BLU,27,tempo_total,NRM);
+  printf("%s%c[1mInfo: %sTaxa de processamento: %s%c[1m%.2fB/s%s.\n",YEL,27,NRM,BLU,27,tam_total/tempo_total,NRM);
 
   // Fecha conexão
   if (c->modo_passivo == 0) {
@@ -706,9 +717,10 @@ char *func_stor(ConnectionStatus *c, char *message) {
     FILE *file = fopen(filename, "w");
     int tam_buffer = 0;
     int tam_total = 0;
-    clock_t end, end_total;
-    clock_t begin = clock();
-    clock_t begin_total = clock();
+    struct timeval begin, end, begin_total, end_total;
+    gettimeofday(&begin, NULL);
+    gettimeofday(&begin_total, NULL);
+
     while (1) {
       char *read_message = (char*)malloc(sizeof(char));
       int j;
@@ -730,15 +742,15 @@ char *func_stor(ConnectionStatus *c, char *message) {
       // Verifica se buffer lotou
       if (tam_buffer >= c->taxa_transmissao) {
         // Pausa enquanto completa um segundo
-        end = clock();
-        float tempo_gasto = (float)(end - begin) / CLOCKS_PER_SEC;
+        gettimeofday(&end, NULL);
+        float tempo_gasto = (float)(end.tv_usec - begin.tv_usec) / 1000000 + (float)(end.tv_sec - begin.tv_sec);
         usleep((1-tempo_gasto)*1000000);
         // Reinicia timer
         tam_buffer = tam_buffer - c->taxa_transmissao;
-        begin = clock();
+        gettimeofday(&begin, NULL);
       }
     }
-    end_total = clock();
+    gettimeofday(&end_total, NULL);
     fclose(file);
 
     // Fecha conexão
@@ -755,10 +767,10 @@ char *func_stor(ConnectionStatus *c, char *message) {
       close(client_s);
     }
 
-    float tempo_total = (float)10000*(end_total - begin_total)/CLOCKS_PER_SEC;
-    printf("%s%c[1mInfo: %sTamanho: %s%c[1m%iB%s.\n",YEL,27,NRM,BLU,27,tam_total,NRM);
-    printf("%s%c[1mInfo: %sTempo: %s%c[1m%.2fs%s.\n",YEL,27,NRM,BLU,27,tempo_total,NRM);
-    printf("%s%c[1mInfo: %sTaxa de transferência: %s%c[1m%.2fB/s%s.\n",YEL,27,NRM,BLU,27,tam_total/tempo_total,NRM);
+    float tempo_total = (float)(end_total.tv_usec - begin_total.tv_usec) / 1000000 + (float)(end_total.tv_sec - begin_total.tv_sec);
+    printf("%s%c[1mInfo: %sTamanho do arquivo: %s%c[1m%iB%s.\n",YEL,27,NRM,BLU,27,tam_total,NRM);
+    printf("%s%c[1mInfo: %sTempo de processamento: %s%c[1m%.2fs%s.\n",YEL,27,NRM,BLU,27,tempo_total,NRM);
+    printf("%s%c[1mInfo: %sTaxa de processamento: %s%c[1m%.2fB/s%s.\n",YEL,27,NRM,BLU,27,tam_total/tempo_total,NRM);
 
     return "250 Requested file action okay, completed.\n";
   } else {
