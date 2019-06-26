@@ -419,7 +419,8 @@ char *func_list(ConnectionStatus *c,char *message) {
   char return_message[STRING_SIZE];
   int i = 0;
   int tam_buffer = 0;
-  clock_t begin, end;
+  clock_t end;
+  clock_t begin = clock();
   char buffer[2];
   while (fgets(return_message, sizeof(return_message),arquivos) != NULL) {
     return_message[strlen(return_message)-1] = 0;
@@ -703,23 +704,35 @@ char *func_stor(ConnectionStatus *c, char *message) {
 
     // Recebe mensagens do cliente
     FILE *file = fopen(filename, "w");
+    int tam_buffer = 0;
+    clock_t end;
+    clock_t begin = clock();
     while (1) {
-      if (client_s == 0) {
-        char *read_message = (char*) malloc(8*sizeof(char));
-        int j;
-        if (c->modo_passivo == 0) {
-          j = read(c->data_session, read_message, sizeof(read_message));
-        } else {
-          j = read(client_s, read_message, sizeof(read_message));
-        }
-        if (j == 0) {
+      char *read_message = (char*)malloc(sizeof(char));
+      int j;
+      if (c->modo_passivo == 0) {
+        j = read(c->data_session, read_message, sizeof(char));
+      } else {
+        if (client_s == 0) {
           break;
         }
-        printf("%s%c[1mInfo: %sRecebendo pacote...\n",YEL,27,NRM);
-        fprintf(file, "%s",read_message);
-        free(read_message);
-      } else {
+        j = read(client_s, read_message, sizeof(char));
+      }
+      if (j == 0) {
         break;
+      }
+      fprintf(file, "%s",read_message);
+      tam_buffer += 1;
+
+      // Verifica se buffer lotou
+      if (tam_buffer >= c->taxa_transmissao) {
+        // Pausa enquanto completa um segundo
+        end = clock();
+        float tempo_gasto = (float)(end - begin) / CLOCKS_PER_SEC;
+        usleep((1-tempo_gasto)*1000000);
+        // Reinicia timer
+        tam_buffer = tam_buffer - c->taxa_transmissao;
+        begin = clock();
       }
     }
     fclose(file);
@@ -727,7 +740,11 @@ char *func_stor(ConnectionStatus *c, char *message) {
     // Fecha conexão
     mes = "226 Closing data connection.\n";
     printf("%s%c[1mSend: %s%s",GRN,27,NRM,mes);
-    write(c->data_session, mes, strlen(mes));
+    if (c->modo_passivo == 0) {
+      write(c->data_session, mes, strlen(mes));
+    } else {
+      write(client_s, mes, strlen(mes));
+    }
     if (c->modo_passivo == 0) {
       close(c->data_session);
     } else {
