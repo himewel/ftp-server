@@ -84,7 +84,7 @@ int main (int argc, char *argv[]) {
   // Leitura do arquivo
   if ((file = fopen("config.ini", "r")) == NULL) {
     printf("%s%c[1mInfo: %sArquivo de configuração não encontrado, utilizando taxa padrão para todos os usuários.\n",YEL,27,NRM);
-    printf("%s%c[1mInfo: %sTaxa de transmissão padrão: 1000000\n",YEL,27,NRM);
+    printf("%s%c[1mInfo: %sTaxa de transmissão padrão: %i\n",YEL,27,NRM,(int)taxa_servidor/MAX_CLIENTS);
   } else {
     // Variáveis na leitura
     char *line;
@@ -144,7 +144,7 @@ int main (int argc, char *argv[]) {
       char *client_address = (char*) malloc(15*sizeof(char));
       client_address = inet_ntoa(client.sin_addr);
       c->client_address = client_address;
-      c->taxa_transmissao = 1000000;
+      c->taxa_transmissao = (int)taxa_servidor/MAX_CLIENTS;
       for (int i = 0; i < MAX_CLIENTS; i++) {
         if (strcmp(endereco[i],c->client_address) == 0) {
           c->taxa_transmissao = taxa[i];
