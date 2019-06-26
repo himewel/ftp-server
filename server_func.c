@@ -678,7 +678,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
     strcpy(filename, c->actual_path);
     strcat(filename, args[1]);
   }
-  printf("%s\n",filename);
+  /*printf("%s\n",filename);*/
 
   // Checa se é um arquivo ou um diretório
   char *mes;
@@ -705,8 +705,10 @@ char *func_stor(ConnectionStatus *c, char *message) {
     // Recebe mensagens do cliente
     FILE *file = fopen(filename, "w");
     int tam_buffer = 0;
-    clock_t end;
+    int tam_total = 0;
+    clock_t end, end_total;
     clock_t begin = clock();
+    clock_t begin_total = clock();
     while (1) {
       char *read_message = (char*)malloc(sizeof(char));
       int j;
@@ -723,6 +725,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
       }
       fprintf(file, "%s",read_message);
       tam_buffer += 1;
+      tam_total += 1;
 
       // Verifica se buffer lotou
       if (tam_buffer >= c->taxa_transmissao) {
@@ -735,6 +738,7 @@ char *func_stor(ConnectionStatus *c, char *message) {
         begin = clock();
       }
     }
+    end_total = clock();
     fclose(file);
 
     // Fecha conexão
@@ -750,6 +754,11 @@ char *func_stor(ConnectionStatus *c, char *message) {
     } else {
       close(client_s);
     }
+
+    float tempo_total = (float)10000*(end_total - begin_total)/CLOCKS_PER_SEC;
+    printf("%s%c[1mInfo: %sTamanho: %s%c[1m%iB%s.\n",YEL,27,NRM,BLU,27,tam_total,NRM);
+    printf("%s%c[1mInfo: %sTempo: %s%c[1m%.2fs%s.\n",YEL,27,NRM,BLU,27,tempo_total,NRM);
+    printf("%s%c[1mInfo: %sTaxa de transferência: %s%c[1m%.2fB/s%s.\n",YEL,27,NRM,BLU,27,tam_total/tempo_total,NRM);
 
     return "250 Requested file action okay, completed.\n";
   } else {
