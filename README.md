@@ -16,15 +16,15 @@ Se não especificado por argumentos, a interface padrão para início do servido
 
 Para especificação da interface e porta desejadas, deve se seguir a seguinte sintaxe:
 
-    ./compile.sh [interface de rede] [porta desejada] [número de threads/conexões]
+    ./compile.sh [interface de rede] [porta desejada] [número de threads/conexões] [cota máxima de transmissão do servidor]
 
 O script utiliza o GCC como compilador padrão seguindo o seguinte comando:
 
-    gcc server*.c -o server.out
+    gcc server*.c -o server.out -lpthread
 
 Caso se deseje utilizar diretamente o arquivo compilado:
 
-    ./server.out [interface de rede] [porta desejada] [número de threads/conexões]
+    ./server.out [interface de rede] [porta desejada] [número de threads/conexões] [cota máxima de transmissão do servidor]
 
 ## Exemplos de utilização
 
@@ -38,7 +38,9 @@ Utilizando script de compilação e especificando interface de rede, porta para 
     Info: Utilizando interface selecionada.
     Info: Porta selecionada: 2300.
     Info: Número máximo de clientes conectados simultaneamente: 5.
+    Info: Utilizando limite total da taxa de transmissão padrão: 2000000.
     Info: Socket criado com sucesso.
+    Info: Arquivo de configuração não encontrado, utilizando taxa padrão para todos os usuários.
     Info: Rodando servidor em: 192.168.1.166:2300.
     --------------------------------------------------------------------------------
 
@@ -49,7 +51,9 @@ Utilizando diretamente arquivo compila pelo gcc e executando servidor com interf
     Info: Interface não informada, utilizando interface padrão: lo.
     Info: Porta padrão selecionada: 2300.
     Info: Número máximo de clientes conectados simultaneamente não informado, utilizando valor padrão: 20.
+    Info: Utilizando limite total da taxa de transmissão padrão: 2000000.
     Info: Socket criado com sucesso.
+    Info: Arquivo de configuração não encontrado, utilizando taxa padrão para todos os usuários.
     Info: Rodando servidor em: 127.0.0.1:2300.
     --------------------------------------------------------------------------------
 
@@ -58,6 +62,7 @@ Ao conectar com um cliente, uma mensagem com o endereço e porta do cliente ser�
     --------------------------------------------------------------------------------
     Info: Conexão estabelecida com: 127.0.0.1:48830.
     Info: Número de conexões atualmente: 1.
+    Info: Taxa de transmissão reservada/Taxa máxima definida: 10/2000000.
     Send: 220 Service ready for new user.
     --------------------------------------------------------------------------------
 
@@ -86,4 +91,4 @@ Todos os comandos listados na implementação mínima e seus valores padrão for
 
     202 Command not implemented, superfluous at this site.
 
-Outros comandos que trazem uma experiência do usuário também foram implementados, como o LIST, CD, CDUP, PWD, MKD, RMD e SYST.
+Outros comandos que trazem uma melhor experiência do usuário também foram implementados, como o LIST, CD, CDUP, PWD, MKD, RMD e SYST.
