@@ -616,58 +616,57 @@ char *func_retr(ConnectionStatus *c, char *message) {
       return mes;
     }
     // Envia arquivo
-    char buf[BUF_SIZE];
-    strcpy(buf,"\0");
     FILE *file = fopen(filename,"r");
-    int flag = 0;
+    char line[STRING_SIZE];
+    char buffer[2];
+    int tam_buffer = 0;
+    int tam_total = 0;
+    struct timeval begin, end, begin_total, end_total;
+    gettimeofday(&begin, NULL);
+    gettimeofday(&begin_total, NULL);
 
-    for (int i = 0; i < buffer.st_size; i++) {
-      char caractere = fgetc(file);
-      // Corrige CRLF com \r\n
-      if (caractere == '\n') {
-        sprintf(buf, "%s\r", buf);
-        // Confere tamanho do buffer
-        if (strlen(buf) < BUF_SIZE) {
-          sprintf(buf, "%s\n", buf);
-        } else {
-          flag = 1;
-        }
-      } else {
-        // Insere caractere comum
-        sprintf(buf, "%s%c", buf,caractere);
-      }
+    while (fgets(line, sizeof(line),file) != NULL) {
+      line[strlen(line)-1] = 0;
+      sprintf(line, "%s\r\n",line);
 
-      // Incrementa contador do buffer
-      if (strlen(buf) == BUF_SIZE) {
-        // Envia dados quando buffer cheio
-        printf("%s%c[1mInfo: %sBuffer cheio, descarregando...\n",YEL,27,NRM);
+      for (int j = 0; j < strlen(line); j++){
+        tam_buffer += 1;
+        tam_total += 1;
+
+        // Envia um byte dos dados
+        sprintf(buffer, "%c", line[j]);
         if (c->modo_passivo == 0) {
-          write(c->data_session, buf, strlen(buf));
+          write(c->data_session, buffer, strlen(buffer));
         } else {
-          write(client_s, buf, strlen(buf));
+          write(client_s, buffer, strlen(buffer));
         }
-        if (flag == 1) {
-          strcpy(buf,"\n");
-        } else {
-          strcpy(buf, "\0");
+
+        // Verifica se buffer lotou
+        if (tam_buffer == c->taxa_transmissao) {
+          // Pausa enquanto completa um segundo
+          gettimeofday(&end, NULL);
+          float tempo_gasto = (float)(end.tv_usec - begin.tv_usec) / 1000000 + (float)(end.tv_sec - begin.tv_sec);
+          usleep((1-tempo_gasto)*1000000);
+          // Reinicia timer
+          tam_buffer = 0;
+          gettimeofday(&begin, NULL);
         }
       }
     }
-    if (strlen(buf) > 0) {
-      printf("%s%c[1mInfo: %sBuffer final não cheio, descarregando...\n",YEL,27,NRM);
-      if (c->modo_passivo == 0) {
-        write(c->data_session, buf, strlen(buf));
-      } else {
-        write(client_s, buf, strlen(buf));
-      }
-    }
+    gettimeofday(&end_total, NULL);
+    fclose(file);
+
+    float tempo_total = (float)(end_total.tv_usec - begin_total.tv_usec) / 1000000 + (float)(end_total.tv_sec - begin_total.tv_sec);
+    printf("%s%c[1mInfo: %sTamanho do arquivo: %s%c[1m%iB%s.\n",YEL,27,NRM,BLU,27,tam_total,NRM);
+    printf("%s%c[1mInfo: %sTempo de processamento: %s%c[1m%fs%s.\n",YEL,27,NRM,BLU,27,tempo_total,NRM);
+    printf("%s%c[1mInfo: %sTaxa de processamento: %s%c[1m%.2fB/s%s.\n",YEL,27,NRM,BLU,27,tam_total/tempo_total,NRM);
+
     // Fecha conexão
     if (c->modo_passivo == 0) {
       close(c->data_session);
     } else {
       close(client_s);
     }
-    fclose(file);
 
     return "250 Requested file action okay, completed.\n";
   } else {
